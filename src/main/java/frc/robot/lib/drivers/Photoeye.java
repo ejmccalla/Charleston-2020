@@ -1,21 +1,18 @@
 package frc.robot.lib.drivers;
-import edu.wpi.first.wpilibj.AnalogInput;
+import edu.wpi.first.wpilibj.DigitalInput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Photoeye {
-    private static final Logger mLogger = LoggerFactory.getLogger( PressureSensor.class );
-    private final double mThreshold = 1.0;
-    private final AnalogInput mAnalogInput;
+    private static final Logger mLogger = LoggerFactory.getLogger( Photoeye.class );
+    private final DigitalInput mDigitalInput;
 
     public boolean IsPhotoeyeClosed () {
-        return mAnalogInput.getAverageVoltage() > mThreshold ?  false : true;  // PNP
+        return mDigitalInput.get();
     }
 
     public Photoeye(int channel) {
-        mAnalogInput = new AnalogInput(channel);
-        mAnalogInput.setOversampleBits(6);
-        mAnalogInput.setAverageBits(6);
+        mDigitalInput = new DigitalInput( channel );
         mLogger.info( "Created photoeye [{}]", channel );
     }
 

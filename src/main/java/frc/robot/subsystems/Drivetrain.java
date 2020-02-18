@@ -12,22 +12,16 @@ import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj.smartdashboard.SendableBuilder;
 
 public class Drivetrain extends SubsystemBase {
 
     // Driver controller state
     public static enum driverMode_t {
         kXbox {
-            @Override
-            public String toString() {
-                return "XBox";
-            }
+            @Override public String toString() { return "XBox"; }
         },
-        kJoysticks {
-            @Override
-            public String toString() {
-                return "Joysticks";
-            }
+        kJoysticks { @Override public String toString() { return "Joysticks"; }
         };
     }
 
@@ -50,16 +44,17 @@ public class Drivetrain extends SubsystemBase {
     // Logging
     private final Logger mLogger = LoggerFactory.getLogger( Drivetrain.class );
 
+    private double mP, mI, mD, mF, mTarget;
 
     public void SetReversed ( boolean wantsReversed ) {
         if ( wantsReversed != mIsReversed ) {
             mIsReversed = wantsReversed;
-            mLeftMaster.setInverted( !wantsReversed );
-            mLeftFollower_1.setInverted( !wantsReversed );
-            mLeftFollower_2.setInverted( !wantsReversed );
-            mRightMaster.setInverted( !wantsReversed) ;
-            mRightFollower_1.setInverted( !wantsReversed );
-            mRightFollower_2.setInverted( !wantsReversed );
+            mLeftMaster.setInverted( wantsReversed );
+            mLeftFollower_1.setInverted( wantsReversed );
+            mLeftFollower_2.setInverted( wantsReversed );
+            mRightMaster.setInverted( wantsReversed) ;
+            mRightFollower_1.setInverted( wantsReversed );
+            mRightFollower_2.setInverted( wantsReversed );
             mLogger.info( "Reversed drive set to: [{}]", mIsReversed );
         }
     }
@@ -117,7 +112,7 @@ public class Drivetrain extends SubsystemBase {
     }
 
 
-    private void SetSmartDashboard () {
+    public void OutputSmartDashboard () {
         if ( IsHighGear() ) {
           SmartDashboard.putString( "Gear", "High-Speed" );
         } else {
@@ -136,6 +131,18 @@ public class Drivetrain extends SubsystemBase {
             SmartDashboard.putString( "Reversed Mode", "False" );
         }
     }
+
+    public void SetP ( double p ) { mP = p; }
+    public void SetI ( double i ) { mI = i; }
+    public void SetD ( double d ) { mD = d; }
+    public void SetF ( double f ) { mF = f; }
+    public void SetTarget ( double target ) { mTarget = target; }
+    public double GetP () { return mP; }
+    public double GetI () { return mI; }
+    public double GetD () { return mD; }
+    public double GetF () { return mF; }
+    public double GetTarget () { return mTarget; }
+
 
     public Drivetrain ( WPI_TalonSRX leftMaster, WPI_VictorSPX leftFollower_1, WPI_VictorSPX leftFollower_2,
                         WPI_TalonSRX rightMaster, WPI_VictorSPX rightFollower_1, WPI_VictorSPX rightFollower_2,
@@ -156,12 +163,19 @@ public class Drivetrain extends SubsystemBase {
         // Set the hardware states
         mIsHighGear = false;
         SetHighGear( true );
-        mIsBrakeMode = true;
-        SetBrakeMode( false );
-        mIsReversed = true;
-        SetReversed( false );
-        //SetDriverControlMode( driverMode_t.kXbox );
-        SetDriverControlMode( driverMode_t.kJoysticks );
+        mIsBrakeMode = false;
+        SetBrakeMode( true );
+        mIsReversed = false;
+        //SetReversed( false );
+        SetDriverControlMode( driverMode_t.kXbox );
+        //SetDriverControlMode( driverMode_t.kJoysticks );
+
+        mP = 0.0;
+        mI = 0.0;
+        mD = 0.0;
+        mF = 0.0;
+        mTarget = 0.0;
+
     }
 
     public static Drivetrain create () {
@@ -178,7 +192,17 @@ public class Drivetrain extends SubsystemBase {
 
     @Override
     public void periodic () {
-        SetSmartDashboard();
+        
+    }
+
+    @Override
+    public void initSendable ( SendableBuilder builder ) {
+        builder.setSmartDashboardType( "Drivetrain PID Tuning" );
+        builder.addDoubleProperty( "P", this::GetP, this::SetP);
+        builder.addDoubleProperty( "I", this::GetI, this::SetI);
+        builder.addDoubleProperty( "D", this::GetD, this::SetD);
+        builder.addDoubleProperty( "F", this::GetF, this::SetF);
+        builder.addDoubleProperty( "Setpoint", this::GetTarget, this::SetTarget);
     }
 
 }
