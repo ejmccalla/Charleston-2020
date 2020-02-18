@@ -8,7 +8,7 @@ public final class Constants {
     public static final double PRESSURE_SENSOR_PRESSURE_PER_VOLT = 115.0 / (3.62 - 1.19);   // Calculate with prior measurement and reading analog input voltage @ max operating PSI 
 
     // Photoeye
-    public static final int PHOTOEYE_ANALOG_CHANNEL = 1;
+    public static final int PHOTOEYE_DIGITAL_CHANNEL = 0;
 
     // Drivetrain device ID's and ports
     public static final int DRIVETRAIN_LEFT_MASTER_ID = 15;

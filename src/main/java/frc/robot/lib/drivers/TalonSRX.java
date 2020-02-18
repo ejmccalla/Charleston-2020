@@ -15,7 +15,7 @@ public class TalonSRX {
 
     private static final Logger mLogger = LoggerFactory.getLogger( TalonSRX.class );
 
-    // Set the default configuration for the Victor (this includes first resetting to factory defaults)
+    // Set the default configuration for the Talon (this includes first resetting to factory defaults)
     private static void setDefaultConfig ( WPI_TalonSRX talon ) {
         StickyFaults faults = new StickyFaults();
 

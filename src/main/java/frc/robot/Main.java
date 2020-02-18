@@ -13,7 +13,7 @@ public final class Main {
     private Main() {
     }
 
-    public static void main(String... args) {
+    public static void main (String... args) {
 
         final File mLogBackFile = new File( Filesystem.getDeployDirectory(), "logback.xml" );
         LoggerContext context = (LoggerContext) LoggerFactory.getILoggerFactory();
