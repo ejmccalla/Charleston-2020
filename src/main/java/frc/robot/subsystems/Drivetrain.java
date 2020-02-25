@@ -1,6 +1,7 @@
 package frc.robot.subsystems;
 
-import frc.robot.Constants;
+import frc.robot.Constants.HARDWARE;
+import frc.robot.Constants.DRIVETRAIN;
 import frc.robot.lib.drivers.TalonSRX;
 import frc.robot.lib.drivers.VictorSPX;
 import org.slf4j.Logger;
@@ -180,13 +181,13 @@ public class Drivetrain extends SubsystemBase {
 
     public static Drivetrain create () {
         // Talon's and Victor's go through a custom wrapper for creation
-        WPI_TalonSRX leftMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( Constants.DRIVETRAIN_LEFT_MASTER_ID) );
-        WPI_VictorSPX leftFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( Constants.DRIVETRAIN_LEFT_FOLLOWER_1_ID), leftMaster );
-        WPI_VictorSPX leftFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( Constants.DRIVETRAIN_LEFT_FOLLOWER_2_ID), leftMaster );
-        WPI_TalonSRX rightMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( Constants.DRIVETRAIN_RIGHT_MASTER_ID) );
-        WPI_VictorSPX rightFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( Constants.DRIVETRAIN_RIGHT_FOLLOWER_1_ID), rightMaster );
-        WPI_VictorSPX rightFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( Constants.DRIVETRAIN_RIGHT_FOLLOWER_2_ID), rightMaster );
-        DoubleSolenoid shifter = new DoubleSolenoid( Constants.PCM_ID, Constants.DRIVETRAIN_HIGH_GEAR_SOLENOID_ID, Constants.DRIVETRAIN_LOW_GEAR_SOLENOID_ID );
+        WPI_TalonSRX leftMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( DRIVETRAIN.LEFT_MASTER_ID) );
+        WPI_VictorSPX leftFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_1_ID), leftMaster );
+        WPI_VictorSPX leftFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_2_ID), leftMaster );
+        WPI_TalonSRX rightMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( DRIVETRAIN.RIGHT_MASTER_ID) );
+        WPI_VictorSPX rightFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_1_ID), rightMaster );
+        WPI_VictorSPX rightFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_2_ID), rightMaster );
+        DoubleSolenoid shifter = new DoubleSolenoid( HARDWARE.PCM_ID, DRIVETRAIN.HIGH_GEAR_SOLENOID_ID, DRIVETRAIN.LOW_GEAR_SOLENOID_ID );
         return new Drivetrain( leftMaster, leftFollower_1, leftFollower_2, rightMaster, rightFollower_1, rightFollower_2, shifter );
     }
 

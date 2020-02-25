@@ -17,6 +17,14 @@
 		</encoder>
 	</appender>
 
+	<appender name="CONSOLE_FILE" class="ch.qos.logback.core.FileAppender">
+		<file>${LOG_DIR_BASE}/${TIME_BY_YMD}/${TIME_BY_HMS}_concole.log</file>
+		<filter class="frc.robot.lib.logback.ConsoleFileFilter" />
+		<encoder>
+			<pattern>${LOG_CONSOLE_PATTERN}</pattern>
+		</encoder>
+	</appender>
+
 	<appender name="DEBUG_FILE" class="ch.qos.logback.core.FileAppender">
 		<file>${LOG_DIR_BASE}/${TIME_BY_YMD}/${TIME_BY_HMS}.log</file>
 		<filter class="frc.robot.lib.logback.FileFilter" />
@@ -27,6 +35,7 @@
 
 	<root level="DEBUG">
 		<appender-ref ref="CONSOLE"/>
+		<appender-ref ref="CONSOLE_FILE"/>
 		<appender-ref ref="DEBUG_FILE"/>
 	</root>
 

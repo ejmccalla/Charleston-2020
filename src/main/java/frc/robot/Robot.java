@@ -15,7 +15,7 @@ public class Robot extends TimedRobot {
     @Override
     public void robotInit () {
         mLogger.info("<=========== ROBOT INIT ===========>");
-        mRobotContainer = new RobotContainer();
+        mRobotContainer = RobotContainer.Create();
         mRobotContainer.SetMatchState( MatchState_t.robotInit );
         mRobotContainer.LogRobotDataHeader( mLogger );
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
@@ -24,10 +24,11 @@ public class Robot extends TimedRobot {
 
     @Override
     public void robotPeriodic () {
-        CommandScheduler.getInstance().run();
         if ( mRobotContainer.GetMatchState() != MatchState_t.robotPeriodic ) {
+            mLogger.info("<=========== ROBOT PERIODIC ===========>");
             mRobotContainer.SetMatchState( MatchState_t.robotPeriodic );
         }
+        CommandScheduler.getInstance().run();
         mRobotContainer.UpdateSmartDashboard();
     }
 
@@ -42,7 +43,8 @@ public class Robot extends TimedRobot {
     @Override
     public void disabledPeriodic () {
         if ( mRobotContainer.GetMatchState() != MatchState_t.robotPeriodic ) {
-            mRobotContainer.SetMatchState( MatchState_t.robotPeriodic );
+            mLogger.info("<=========== DISABLED PERIODIC ===========>");
+            mRobotContainer.SetMatchState( MatchState_t.disabledPeriodic );
             mRobotContainer.LogRobotDataToRoboRio( mLogger );
             mRobotContainer.UpdateSmartDashboard();
         }
@@ -64,8 +66,10 @@ public class Robot extends TimedRobot {
     @Override
     public void autonomousPeriodic () {
         if ( mRobotContainer.GetMatchState() != MatchState_t.autonomousPeriodic ) {
+            mLogger.info("<=========== AUTONOMOUS PERIODIC ===========>");
             mRobotContainer.SetMatchState( MatchState_t.autonomousPeriodic );
         }
+        CommandScheduler.getInstance().run();
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
     }
 
@@ -83,10 +87,11 @@ public class Robot extends TimedRobot {
     @Override
     public void teleopPeriodic () {
         if ( mRobotContainer.GetMatchState() != MatchState_t.teleopPeriodic ) {
+            mLogger.info("<=========== TELEOP PERIODIC ===========>");
             mRobotContainer.SetMatchState( MatchState_t.teleopPeriodic );
         }
+        CommandScheduler.getInstance().run();
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
-        //mRobotContainer.OutputPID( mLogger );
     }
 
     @Override
