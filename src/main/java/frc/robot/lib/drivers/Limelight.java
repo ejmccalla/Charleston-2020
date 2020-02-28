@@ -9,7 +9,8 @@ import edu.wpi.first.networktables.NetworkTableInstance;
 */
 public class Limelight {
 
-    public static enum LEDMode_t { 
+    // State enumerations
+    public static enum LEDMode_t {
         CurrentPipeline { @Override public String toString() { return "Current Pipeline"; } },
         Off { @Override public String toString() { return "Force Off"; } },
         Blink { @Override public String toString() { return "Force Blink"; } },
@@ -45,11 +46,15 @@ public class Limelight {
         Start { @Override public String toString() { return "Take Snapshots"; } }  // Takes 2 snapshots per second
     }
 
+    // Network table instance copy
     private NetworkTable mTable;
 
+
     //-----------------------------------------------------------------------------------------------------------------
+    /*                                              PUBLIC API METHODS                                               */
     //-----------------------------------------------------------------------------------------------------------------
     
+
     public void SetLedMode ( LEDMode_t value ) {
         mTable.getEntry( "ledMode" ).setValue( value.ordinal() );
     }
@@ -63,14 +68,14 @@ public class Limelight {
     }
     
     public double GetCamMode () {
-        return mTable.getEntry("camMode").getDouble(-1.0);
+        return mTable.getEntry("camMode").getDouble( -1.0 );
     }
     
     public void SetPipeline ( Pipeline_t value ) {
         mTable.getEntry( "pipeline" ).setValue( value.ordinal() );
     }
     
-    public double GetPipeline() {
+    public double GetPipeline () {
         return mTable.getEntry( "pipeline" ).getDouble( -1.0 );
     }
     
@@ -135,17 +140,17 @@ public class Limelight {
     } 
     
     public double[] GetCameraTransform () {
-        final double[] defValue = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0};
+        final double[] defValue = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
         return mTable.getEntry( "camtran" ).getDoubleArray( defValue );
     } 
 
     public double[] GetCornersX () {
-        final double[] defValue = {0.0, 0.0, 0.0, 0.0};
+        final double[] defValue = { 0.0, 0.0, 0.0, 0.0 };
         return mTable.getEntry( "tcornx" ).getDoubleArray( defValue );
     }
     
     public double[] GetCornersY () {
-        final double[] defValue = {0.0, 0.0, 0.0, 0.0};
+        final double[] defValue = { 0.0, 0.0, 0.0, 0.0 };
         return mTable.getEntry( "tcorny" ).getDoubleArray( defValue );
     }
 
@@ -213,10 +218,13 @@ public class Limelight {
         return mTable.getEntry( "cy1" ).getDouble( 0.0 );
     }     
 
+
     //-----------------------------------------------------------------------------------------------------------------
+    /*                                                PRIVATE METHODS                                                */
     //-----------------------------------------------------------------------------------------------------------------
 
-    private void DefaultConfiguration() {    
+
+    private void DefaultConfiguration () {
         SetLedMode( LEDMode_t.Off );
         SetCamMode( CameraMode_t.Driver );
         SetPipeline( Pipeline_t.Pipeline0) ;
@@ -224,16 +232,19 @@ public class Limelight {
         SetStream( Stream_t.Standard );
     }
 
+
     //-----------------------------------------------------------------------------------------------------------------
+    /*                                        CLASS CONSTRUCTOR AND OVERRIDES                                        */
     //-----------------------------------------------------------------------------------------------------------------
 
-    public Limelight() {
-        mTable = NetworkTableInstance.getDefault().getTable("limelight");
+
+    public Limelight () {
+        mTable = NetworkTableInstance.getDefault().getTable( "limelight" );
         DefaultConfiguration();
     }
 
-    public Limelight(String tableName) {
-        mTable = NetworkTableInstance.getDefault().getTable(tableName);
+    public Limelight ( String tableName ) {
+        mTable = NetworkTableInstance.getDefault().getTable( tableName );
         DefaultConfiguration();
     }
 

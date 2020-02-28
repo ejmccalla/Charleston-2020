@@ -5,36 +5,38 @@ import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.Constants.DRIVER;
 import frc.robot.subsystems.Drivetrain;
 
-public class TeleopDrive extends CommandBase {
+public class TurnToTarget extends CommandBase {
     @SuppressWarnings( { "PMD.UnusedPrivateField", "PMD.SingularField" } )
     private final Drivetrain mDrivetrain;
     private final Joystick mDriverThrottle;
-    private final Joystick mDriverTurn;
-
+    
     @Override
-    public void initialize () {}
+    public void initialize () {
+        mDrivetrain.StartTurnToTarget();
+    }
 
     @Override
     public void execute() {
         if ( mDriverThrottle.getX() < DRIVER.QUICKTURN_THRESHOLD ) {
-            mDrivetrain.SetOpenLoopOutput( mDriverThrottle.getX(), mDriverTurn.getY(), true );            
+            mDrivetrain.SetLimelightVisionControllerOutput( mDriverThrottle.getX(), true );
         } else {
-            mDrivetrain.SetOpenLoopOutput( mDriverThrottle.getX(), mDriverTurn.getY(), false );
+            mDrivetrain.SetLimelightVisionControllerOutput( mDriverThrottle.getX(), false );
         }
     }
 
     @Override
-    public void end ( boolean interrupted ) {}
+    public void end ( boolean interrupted ) {
+        mDrivetrain.EndTurnToTarget();
+    }
 
     @Override
     public boolean isFinished () {
       return false;
     }
 
-    public TeleopDrive ( Drivetrain drivetrain, Joystick driverThrottle, Joystick driverTurn ) {
+    public TurnToTarget ( Drivetrain drivetrain, Joystick driverThrottle ) {
         mDrivetrain = drivetrain;
         mDriverThrottle = driverThrottle;
-        mDriverTurn = driverTurn;
         addRequirements(mDrivetrain);
     }
 
