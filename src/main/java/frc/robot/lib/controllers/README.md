@@ -17,7 +17,7 @@ The LimelightVision class implements control algorithms using vision as a direct
 * Calibrated Focal Length
 * Calibrated Control Loop Parameters
 
-![Shuffleboard LiveWindow Layout](https://github.com/ejmccalla/Charleston-2020/images/On-the-Fly_Shuffleboard.jpg)
+![Shuffleboard LiveWindow Layout](https://github.com/ejmccalla/Charleston-2020/blob/master/images/On-the-Fly_Shuffleboard.jpg)
 
 ## Controller
 
