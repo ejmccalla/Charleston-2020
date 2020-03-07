@@ -17,6 +17,8 @@ The LimelightVision class implements control algorithms using vision as a direct
 * Calibrated Focal Length
 * Calibrated Control Loop Parameters
 
+![Shuffleboard LiveWindow Layout](https://github.com/ejmccalla/Charleston-2020/images/On-the-Fly_Shuffleboard.jpg)
+
 ## Controller
 
 All of the shared controller state can be read using the *GetSharedState* method and accessing the member variables.
