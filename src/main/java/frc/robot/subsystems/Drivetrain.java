@@ -1,5 +1,6 @@
 package frc.robot.subsystems;
 
+import edu.wpi.first.wpilibj.Notifier;
 import edu.wpi.first.wpilibj.DoubleSolenoid;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
@@ -12,30 +13,13 @@ import frc.robot.Constants.DRIVETRAIN;
 import frc.robot.lib.drivers.TalonSRX;
 import frc.robot.lib.drivers.VictorSPX;
 import frc.robot.lib.controllers.LimelightVision;
-
+import frc.robot.lib.controllers.LimelightVision.SharedState;
 
 /**
 * The Drivetrain class is designed to use the command-based programming model and extends the SubsystemBase class.
 * @see {@link edu.wpi.first.wpilibj2.command.SubsystemBase}
 */
 public class Drivetrain extends SubsystemBase {
-
-    // Logging data
-    public class LoggingData {
-        public boolean FoundTarget;
-        public boolean OnTarget;
-        public double CurrentErrorXPosition;
-        public double CurrentErrorXVelocity;
-        public double PrevErrorXPosition;
-        public double TotalErrorXPosition;
-        public String CommandState;
-        public String VisionState;
-        public String FailState;
-    }
-    public final String mLoggingHeader = "Found Target,On Target,Current Error X-position,Current Error " +
-                                         "X-velocity, Prev Error X-position,Total Error X-position,Command " +
-                                         "State,Vision State,Fail State";
-    private LoggingData mLoggingData;
 
     // Hardware
     private final WPI_TalonSRX mLeftMaster;
@@ -49,14 +33,28 @@ public class Drivetrain extends SubsystemBase {
     // Drive conrol (both open and closed loop)
     private DifferentialDrive mDifferentialDrive;
 
-    // Closed-loop control
+    // Limelight Controller Closed-loop control
+    private Notifier mLimelightVisionControllerThread;  // Threading interface only
     private LimelightVision mLimelightVisionController;
-    private double mLimelightVisionControllerOutput; 
+    private SharedState mLimelightVisionControllerSharedState;
 
     // State variables
     private boolean mIsReversedDirection;
     private boolean mIsHighGear;
     private boolean mIsBrakeMode;
+
+    // Logging data
+    public final String mLoggingHeader = "Current Command,Desired Command,Targeting State,Failing State, " +
+                                         "Found Target,On Target Turn,On Target Distance,Output Turn, " +
+                                         "Output Distance,dt (s),Error Turn (deg),Error Turn (deg/s),Error Turn Total " +
+                                         "(deg),Target Distance (ft),Error Distance (ft)";
+    public class LoggingData {
+        public SharedState mLimelightVisionSharedState;
+        public LoggingData ( SharedState limelightVisionSharedState ) {
+            mLimelightVisionSharedState = limelightVisionSharedState;
+        }
+    }
+    LoggingData mLoggingData;
 
 
     //-----------------------------------------------------------------------------------------------------------------
@@ -164,7 +162,7 @@ public class Drivetrain extends SubsystemBase {
     * This method will set the Limelight vision controller to idle.
     */
     public void EndTurnToTarget () {
-        mLimelightVisionController.SetIdle();
+        mLimelightVisionController.Idle();
     }
 
     /**
@@ -174,9 +172,9 @@ public class Drivetrain extends SubsystemBase {
     */
     public void SetLimelightVisionControllerOutput () {
         if ( mIsReversedDirection ) {
-            mDifferentialDrive.curvatureDrive( 0.0, -mLimelightVisionControllerOutput, true );
+            mDifferentialDrive.curvatureDrive( 0.0, -mLimelightVisionControllerSharedState.outputTurn, true );
         } else {
-            mDifferentialDrive.curvatureDrive( 0.0, mLimelightVisionControllerOutput, true );
+            mDifferentialDrive.curvatureDrive( 0.0, mLimelightVisionControllerSharedState.outputTurn, true );
         }
     }
 
@@ -186,9 +184,9 @@ public class Drivetrain extends SubsystemBase {
     */
     public void SetLimelightVisionControllerOutput ( double throttle, boolean quickTurn ) {
         if ( mIsReversedDirection ) {
-            mDifferentialDrive.curvatureDrive( throttle, -mLimelightVisionControllerOutput, quickTurn );
+            mDifferentialDrive.curvatureDrive( throttle, -mLimelightVisionControllerSharedState.outputTurn, quickTurn );
         } else {
-            mDifferentialDrive.curvatureDrive( throttle, mLimelightVisionControllerOutput, quickTurn );
+            mDifferentialDrive.curvatureDrive( throttle, mLimelightVisionControllerSharedState.outputTurn, quickTurn );
         }
     }
 
@@ -225,27 +223,20 @@ public class Drivetrain extends SubsystemBase {
         } else {
             SmartDashboard.putString( "Reversed Mode", "False" );
         }
-        SmartDashboard.putBoolean( "Found Target", mLimelightVisionController.GetFoundTarget() );
-        SmartDashboard.putBoolean( "On Target", mLimelightVisionController.GetOnTarget() );
-        SmartDashboard.putNumber( "Turning Error", mLimelightVisionController.GetCurrentErrorXPosition() );
-        SmartDashboard.putNumber( "Distance-to-Target", mLimelightVisionController.GetDistanceToTarget() );
+        SmartDashboard.putBoolean( "Found Target", mLimelightVisionControllerSharedState.foundTarget );
+        SmartDashboard.putBoolean( "On Target", mLimelightVisionControllerSharedState.onTargetTurn );
+        SmartDashboard.putString( "Desired Command", mLimelightVisionControllerSharedState.desiredCommand.toString() );
+        SmartDashboard.putString( "Running Command", mLimelightVisionControllerSharedState.currentCommand.toString() );
+        SmartDashboard.putString( "Vision State", mLimelightVisionControllerSharedState.visionState.toString() );
+        SmartDashboard.putString( "Failing State", mLimelightVisionControllerSharedState.failState.toString() );
     }
 
     /**
-    * This method will return gather up all of the logging data 
+    * This method will return all of the logging data 
     *
     * @return LoggingData A class holding all of the logging data
     */
     public LoggingData GetLoggingData () {
-        mLoggingData.FoundTarget = mLimelightVisionController.GetFoundTarget();
-        mLoggingData.OnTarget = mLimelightVisionController.GetOnTarget();
-        mLoggingData.CurrentErrorXPosition = mLimelightVisionController.GetCurrentErrorXPosition();
-        mLoggingData.CurrentErrorXVelocity = mLimelightVisionController.GetCurrentErrorXVelocity();
-        mLoggingData.PrevErrorXPosition = mLimelightVisionController.GetPrevErrorXPosition();
-        mLoggingData.TotalErrorXPosition = mLimelightVisionController.GetTotalErrorXPosition();
-        mLoggingData.CommandState = mLimelightVisionController.GetCommandState();
-        mLoggingData.VisionState = mLimelightVisionController.GetVisionState();
-        mLoggingData.FailState = mLimelightVisionController.GetFailState();
         return mLoggingData;
     }
 
@@ -261,13 +252,14 @@ public class Drivetrain extends SubsystemBase {
     private void Initialize () {
         ResetState();
         ResetSensors();
+        mLimelightVisionControllerSharedState = mLimelightVisionController.GetSharedState();
+        mLoggingData = new LoggingData( mLimelightVisionControllerSharedState );
     }
 
     /**
     * This method will reset senor and vision controller information.
     */ 
     private void ResetSensors () {
-        mLimelightVisionControllerOutput = 0.0;
     }
 
     /**
@@ -312,6 +304,10 @@ public class Drivetrain extends SubsystemBase {
         mShifter = shifter;
         mDifferentialDrive = differentialDrive;
         mLimelightVisionController = limelightVision;
+        if ( DRIVETRAIN.VISION_THREADED ) {
+            mLimelightVisionControllerThread = new Notifier (mLimelightVisionController.mThread); 
+            mLimelightVisionControllerThread.startPeriodic( 0.01 );
+        }
         Initialize();
     }
 
@@ -322,14 +318,14 @@ public class Drivetrain extends SubsystemBase {
     public static Drivetrain Create () {
         WPI_TalonSRX leftMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( DRIVETRAIN.LEFT_MASTER_ID) );
         WPI_VictorSPX leftFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_1_ID),
-                                                                  leftMaster );
+                                                                                     leftMaster );
         WPI_VictorSPX leftFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_2_ID),
-                                                                  leftMaster );
+                                                                                     leftMaster );
         WPI_TalonSRX rightMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( DRIVETRAIN.RIGHT_MASTER_ID) );
         WPI_VictorSPX rightFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_1_ID),
-                                                                   rightMaster );
+                                                                                      rightMaster );
         WPI_VictorSPX rightFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_2_ID),
-                                                                   rightMaster );
+                                                                                      rightMaster );
         DoubleSolenoid shifter = new DoubleSolenoid( HARDWARE.PCM_ID, DRIVETRAIN.HIGH_GEAR_SOLENOID_ID, 
                                                      DRIVETRAIN.LOW_GEAR_SOLENOID_ID );
         DifferentialDrive differentialDrive = new DifferentialDrive( leftMaster, rightMaster );
@@ -340,9 +336,10 @@ public class Drivetrain extends SubsystemBase {
                                                                   DRIVETRAIN.VISION_TURN_PID_KI,
                                                                   DRIVETRAIN.VISION_TURN_PID_KD,
                                                                   DRIVETRAIN.VISION_TURN_PID_KF,
-                                                                  DRIVETRAIN.VISION_TURN_PID_ERROR_THRESHOLD,
+                                                                  DRIVETRAIN.VISION_ON_TARGET_TURN_THRESHOLD_DEG,
+                                                                  DRIVETRAIN.VISION_ON_TARGET_DISTANCE_THRESHOLD_FT,
                                                                   DRIVETRAIN.VISION_TARGET_WIDTH_FT,
-                                                                  DRIVETRAIN.VISION_FOCAL_LENGTH );
+                                                                  DRIVETRAIN.VISION_FOCAL_LENGTH_FT );
 
         return new Drivetrain( leftMaster, leftFollower_1, leftFollower_2, rightMaster, rightFollower_1,
                                rightFollower_2, differentialDrive, limelightVision, shifter );
@@ -355,7 +352,11 @@ public class Drivetrain extends SubsystemBase {
     */ 
     @Override
     public void periodic () {
-        mLimelightVisionControllerOutput = mLimelightVisionController.GetUpdate();        
+        if ( !DRIVETRAIN.VISION_THREADED ) {
+            mLimelightVisionController.RunUpdate();
+        }
+        mLimelightVisionControllerSharedState = mLimelightVisionController.GetSharedState();
+        mLoggingData.mLimelightVisionSharedState = mLimelightVisionControllerSharedState;
     }
 
 }

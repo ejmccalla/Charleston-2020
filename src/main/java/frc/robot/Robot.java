@@ -140,7 +140,7 @@ public class Robot extends TimedRobot {
     */
     @Override
     public void testPeriodic () {
-
+        mRobotContainer.UpdateSmartDashboard();
         CommandScheduler.getInstance().run();
     }
 
