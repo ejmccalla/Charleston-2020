@@ -33,22 +33,6 @@ import frc.robot.lib.drivers.Limelight.LEDMode_t;
 * {@link https://github.com/ejmccalla/Charleston-2020/blob/master/src/main/java/frc/robot/Robot.java}
 * <li>Calibrated Control Loop Parameters (PIDF and On-Target Thresholds)
 * </ul><p>
-* <b>Interactive PID Tuning</b><p>
-* The PIDF gains and on-target thresholds are sent to the <i>Live Window</i> and can be accessed for on-the-fly tuning
-* updates by running the robot in <i>test</i> mode.  Also, the command scheduler is re-enabled 
-* <i>CommandScheduler.getInstance().enable();</i> in order to use the user input to run commands.  It is recommend to
-* use Shuffleboard to acccess the tuning parameters under the <i>Live Window</i> tab.
-* <p>
-* <b>Threading</b><p>
-* Thread safety for LimelightVision class is acheived by synchronizing all methods which modify the shared state of the
-* controller.  With this in place, this class can be setup to run as a standalone thread or within the main robot
-* thread.
-* <p>
-* <b>Automated LED Control</b><p>
-* The Limelight Vision controller will handle the LED state automatically by turning off the LEDs whenever the current
-* command is Idle.  By doing so, the Limelight will be in accordance with R8-M of the 2020 FRC game manual.
-* <p>
-* <b>Distance Estimator</b><p>
 * <b>Controller</b><p>
 * All of the shared controller state can be read using the <i>GetSharedState</i> method and accessing the member
 * variables.  The shared state <i>outputTurn</i> and <i>outputDistance</i> are the raw output from the PIDF
@@ -178,34 +162,34 @@ public class LimelightVision implements Sendable, AutoCloseable {
     }
 
     /**
-     * This method will requrest the controller stop the current command.
-     */
+    * This method will requrest the controller stop the current command.
+    */
     public synchronized void Idle() {
         mSharedState.desiredCommand = CommandState_t.Idle;
     }
 
     /**
-     * This method will requrest the controller to run the updated method. It's intended to be used when the controller
-     * is running in the main robot thread.
-     */
+    * This method will requrest the controller to run the updated method. It's intended to be used when the controller
+    * is running in the main robot thread.
+    */
     public void RunUpdate() {
         Update();
     }
 
     /**
-     * This method will return the current values of the shared state variables.
-     * 
-     * @return SharedState The current value of the shared state variables
-     */
+    * This method will return the current values of the shared state variables.
+    * 
+    * @return SharedState The current value of the shared state variables
+    */
     public synchronized SharedState GetSharedState() {
         return mSharedState;
     }
 
     /**
-     * This method will update the values of the shared state variables.
-     * 
-     * @param updatedSharedState SharedState The new shared state
-     */
+    * This method will update the values of the shared state variables.
+    * 
+    * @param updatedSharedState SharedState The new shared state
+    */
     public synchronized void SetSharedState ( SharedState updatedState ) {
         mSharedState = updatedState;
     }
@@ -217,39 +201,39 @@ public class LimelightVision implements Sendable, AutoCloseable {
 
 
     /**
-     * This method will update the state of the controller.
-     * <p>
-     * The seeking state is the initial controller state when the command begins.  If we get lucky and happen to be be
-     * on-target, the state is updated to tracking and the output is set to the PID calculation.  If we aren't
-     * on-target, but do have a target identified, then use the PID loop to calculate the output and continue seeking
-     * to the target.  If there's no target identified, then use the feed-forward term to "search" for a target and
-     * update the state to "Searching".  If the seek timer expires or the seek retries are exhausted, the state is
-     * updated to failing and the output is set to 0.0.  The failure will be handled by the logic in the failing state.
-     * <p>
-     * The tracking state means that the error in the position is within the given range and we are setting the output
-     * to maintain, or further decrease, the error.  If the target is no longer within the specified range, then the
-     * controller will simply fall back to the seeking state.  This is expected to be an unlikely event when things are
-     * static, but may be more common for dynamic systems (like a vision controlled turret with a moving robot).  If
-     * the target has been lost, update to the failing state, and set the ouptut at 0.0.
-     * <p>
-     * The searching state means that the controller has yet to identity a target and is "searching" for a target by
-     * sending the feed-forward term as the output.  The conroller will continue to do this until either a target is
-     * identified and the controller moves to the seeking state, or, the controller times out and moves to the failing
-     * state.
-     * <p>
-     * The failing state means that one of the following errors was encountered: the seek timed out, there were too
-     * many seek retries, the target was lost during tracking, or a target was never found.  If the target was lost
-     * while tracking, we can assume there was either a sudden and significant change in the limelight pose, or, the
-     * tracking threshold is wide open (nearing the horizontal FOV).  Either way, the controller will not try and
-     * recover from this and will leave it to the caller to issue the command again.  A seek timout could happen
-     * because the timeout threshold is too low, the controller took too long to get to the target, the tracking
-     * threshold is too low, or one of several other reasons.  In any event, it doesn't hurt to report the issue and
-     * retry the seek.  Mostly, this mechanism is in place to give rise to a change in system behaviour (like seeks
-     * used to happen fast, now they're timing out once or twice before reaching the target...time to look into
-     * performance).  Finally, if the Limelight was never able to identify a target and timed out while looking for
-     * one.  The user will have to issue the command again to continue the search or consider increasing the search
-     * timeout threshold.
-     */
+    * This method will update the state of the controller.
+    * <p>
+    * The seeking state is the initial controller state when the command begins.  If we get lucky and happen to be be
+    * on-target, the state is updated to tracking and the output is set to the PID calculation.  If we aren't
+    * on-target, but do have a target identified, then use the PID loop to calculate the output and continue seeking
+    * to the target.  If there's no target identified, then use the feed-forward term to "search" for a target and
+    * update the state to "Searching".  If the seek timer expires or the seek retries are exhausted, the state is
+    * updated to failing and the output is set to 0.0.  The failure will be handled by the logic in the failing state.
+    * <p>
+    * The tracking state means that the error in the position is within the given range and we are setting the output
+    * to maintain, or further decrease, the error.  If the target is no longer within the specified range, then the
+    * controller will simply fall back to the seeking state.  This is expected to be an unlikely event when things are
+    * static, but may be more common for dynamic systems (like a vision controlled turret with a moving robot).  If
+    * the target has been lost, update to the failing state, and set the ouptut at 0.0.
+    * <p>
+    * The searching state means that the controller has yet to identity a target and is "searching" for a target by
+    * sending the feed-forward term as the output.  The conroller will continue to do this until either a target is
+    * identified and the controller moves to the seeking state, or, the controller times out and moves to the failing
+    * state.
+    * <p>
+    * The failing state means that one of the following errors was encountered: the seek timed out, there were too
+    * many seek retries, the target was lost during tracking, or a target was never found.  If the target was lost
+    * while tracking, we can assume there was either a sudden and significant change in the limelight pose, or, the
+    * tracking threshold is wide open (nearing the horizontal FOV).  Either way, the controller will not try and
+    * recover from this and will leave it to the caller to issue the command again.  A seek timout could happen
+    * because the timeout threshold is too low, the controller took too long to get to the target, the tracking
+    * threshold is too low, or one of several other reasons.  In any event, it doesn't hurt to report the issue and
+    * retry the seek.  Mostly, this mechanism is in place to give rise to a change in system behaviour (like seeks
+    * used to happen fast, now they're timing out once or twice before reaching the target...time to look into
+    * performance).  Finally, if the Limelight was never able to identify a target and timed out while looking for
+    * one.  The user will have to issue the command again to continue the search or consider increasing the search
+    * timeout threshold.
+    */
     private void Update () {
         double currentTime = Timer.getFPGATimestamp();
         SharedState updatedState = GetSharedState();
@@ -554,23 +538,23 @@ public class LimelightVision implements Sendable, AutoCloseable {
     }
 
     /**
-     * This method will initialize the Limelight vision subsystem by setting the closed-loop parameters, resetting all
-     * of the PID calculations, and resettingall of the internal states.
-     * 
-     * @param searchTimeout_S double The timeout for the controller to search for target
-     * @param seekTimeout_S double The timeout for the controller to get on-target
-     * @param seekRetryLimit int The number of seek retries allowed
-     * @param P double The proportional gain
-     * @param I double The integral gain
-     * @param D double The differential gain
-     * @param F double The feed-forward gain
-     * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
-     *                                              tracking states
-     * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
-     *                                                 and tracking states
-     * @param targetSize_FT double The measured target size
-     * @param focalLength_FT double The measured focal length
-     */
+    * This method will initialize the Limelight vision subsystem by setting the closed-loop parameters, resetting all
+    * of the PID calculations, and resettingall of the internal states.
+    * 
+    * @param searchTimeout_S double The timeout for the controller to search for target
+    * @param seekTimeout_S double The timeout for the controller to get on-target
+    * @param seekRetryLimit int The number of seek retries allowed
+    * @param P double The proportional gain
+    * @param I double The integral gain
+    * @param D double The differential gain
+    * @param F double The feed-forward gain
+    * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
+    *                                              tracking states
+    * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
+    *                                                 and tracking states
+    * @param targetSize_FT double The measured target size
+    * @param focalLength_FT double The measured focal length
+    */
     private void Initialize ( double searchTimeout_S, double seekTimeout_S, int seekRetryLimit,
                               double P, double I, double D, double F,
                               double onTargetTurnErrorThreshold_DEG, double onTargetDistanceErrorThreshold_FT,
@@ -604,23 +588,23 @@ public class LimelightVision implements Sendable, AutoCloseable {
     }
 
     /**
-     * This method will calculate the output for drive-to-target command
-     * 
-     * @param currentErrorXPosition_DEG double The current turning error
-     * @param currentErrorDistance_FT double The current driving error
-     */
+    * This method will calculate the output for drive-to-target command
+    * 
+    * @param currentErrorXPosition_DEG double The current turning error
+    * @param currentErrorDistance_FT double The current driving error
+    */
     private double CalculateDriveToTargetOutput ( double currentErrorXPosition_DEG,
                                                   double currentErrorDistance_FT ) {
         return (1 - (Math.abs(currentErrorXPosition_DEG) / 29.8)) * 0.2 * currentErrorDistance_FT;
     }
 
     /**
-     * This method will calculate the output for turn-to-target command
-     * 
-     * @param currentErrorXPosition_DEG double The current turning error
-     * @param totalErrorXPosition_DEG double The total turning error
-     * @param currentErrorXVelocity_DEGPS double The turning velocity error
-     */
+    * This method will calculate the output for turn-to-target command
+    * 
+    * @param currentErrorXPosition_DEG double The current turning error
+    * @param totalErrorXPosition_DEG double The total turning error
+    * @param currentErrorXVelocity_DEGPS double The turning velocity error
+    */
     private double CalculateTurnToTargetOutput ( double currentErrorXPosition_DEG,
                                                  double totalErrorXPosition_DEG,
                                                  double currentErrorXVelocity_DEGPS ) {
@@ -629,129 +613,129 @@ public class LimelightVision implements Sendable, AutoCloseable {
     }
 
     /**
-     * This method will estimate the distance-to-target.
-     * 
-     * @param pixels double The size of the target in pixels
-     */
+    * This method will estimate the distance-to-target.
+    * 
+    * @param pixels double The size of the target in pixels
+    */
     private double EstimateDistance ( double pixels ) {
         return ( mTargetSize_FT * mFocalLength_FT ) / pixels;
     }
 
     /**
-     * This method will set the mSeekTimer_S variable to the current time in seconds.
-     */
+    * This method will set the mSeekTimer_S variable to the current time in seconds.
+    */
     private void SetSeekTimer () {
         mSeekTimer_S = Timer.getFPGATimestamp();
     }
 
     /**
-     * This method will set the P-gain of the controller and is used by the live window sendable.
-     *
-     * @param p double P-gain
-     */
+    * This method will set the P-gain of the controller and is used by the live window sendable.
+    *
+    * @param p double P-gain
+    */
     private void SetP ( double p ) {
         mP = p;
     }
 
     /**
-     * This method will get the P-gain of the controller and is used by the live window sendable.
-     * 
-     * @return double The value of the P-gain
-     */
+    * This method will get the P-gain of the controller and is used by the live window sendable.
+    * 
+    * @return double The value of the P-gain
+    */
     private double GetP () {
         return mP;
     }
 
     /**
-     * This method will set the I-gain of the controller and is used by the live window sendable.
-     *
-     * @param i double I-gain
-     */
+    * This method will set the I-gain of the controller and is used by the live window sendable.
+    *
+    * @param i double I-gain
+    */
     private void SetI ( double i ) {
         mI = i;
     }
 
     /**
-     * This method will get the I-gain of the controller and is used by the live window sendable.
-     * 
-     * @return double The value of the I-gain
-     */
+    * This method will get the I-gain of the controller and is used by the live window sendable.
+    * 
+    * @return double The value of the I-gain
+    */
     private double GetI () {
         return mI;
     }
 
     /**
-     * This method will set the D-gain of the controller and is used by the live window sendable.
-     *
-     * @param d double D-gain
-     */
+    * This method will set the D-gain of the controller and is used by the live window sendable.
+    *
+    * @param d double D-gain
+    */
     private void SetD ( double d ) {
         mD = d;
     }
 
     /**
-     * This method will get the D-gain of the controller and is used by the live window sendable.
-     * 
-     * @return double The value of the D-gain
-     */
+    * This method will get the D-gain of the controller and is used by the live window sendable.
+    * 
+    * @return double The value of the D-gain
+    */
     private double GetD() {
         return mD;
     }
 
     /**
-     * This method will set the feedforward gain of the controller and is used by the live window sendable.
-     *
-     * @param f double Feedforward-gain
-     */
+    * This method will set the feedforward gain of the controller and is used by the live window sendable.
+    *
+    * @param f double Feedforward-gain
+    */
     private void SetF ( double f ) {
         mF = f;
     }
 
     /**
-     * This method will get the feedforward gain of the controller and is used by the live window sendable.
-     * 
-     * @return double The value of the FF-gain
-     */
+    * This method will get the feedforward gain of the controller and is used by the live window sendable.
+    * 
+    * @return double The value of the FF-gain
+    */
     private double GetF () {
         return mF;
     }
 
     /**
-     * This method will set the on-target turning error threshold of the controller and is used by the live window
-     * sendable.
-     *
-     * @param onTargetTurnErrorThreshold_DEG double Turning error threshold
-     */
+    * This method will set the on-target turning error threshold of the controller and is used by the live window
+    * sendable.
+    *
+    * @param onTargetTurnErrorThreshold_DEG double Turning error threshold
+    */
     private void SetOnTargetTurnErrorThreshold ( double onTargetTurnErrorThreshold_DEG ) {
         mOnTargetTurnErrorThreshold_DEG = onTargetTurnErrorThreshold_DEG;
     }
 
     /**
-     * This method will get the on-target turning error threshold of the controller and is used by the live window
-     * sendable.
-     * 
-     * @return double The value of the on-target threshold
-     */
+    * This method will get the on-target turning error threshold of the controller and is used by the live window
+    * sendable.
+    * 
+    * @return double The value of the on-target threshold
+    */
     private double GetOnTargetTurnErrorThreshold () {
         return mOnTargetTurnErrorThreshold_DEG;
     }
 
     /**
-     * This method will set the on-target distance error threshold of the controller and is used by the live window
-     * sendable.
-     * 
-     * @param onTargetDistanceErrorThreshold_FT double Turning error threshold
-     */
+    * This method will set the on-target distance error threshold of the controller and is used by the live window
+    * sendable.
+    * 
+    * @param onTargetDistanceErrorThreshold_FT double Turning error threshold
+    */
     private void SetOnTargetDistanceErrorThreshold_FT ( double onTargetDistanceErrorThreshold_FT ) {
         mOnTargetDistanceErrorThreshold_FT = onTargetDistanceErrorThreshold_FT;
     }
 
     /**
-     * This method will get the on-target distance error threshold of the controller and is used by the live window
-     * sendable.
-     * 
-     * @return double The value of the on-target threshold
-     */
+    * This method will get the on-target distance error threshold of the controller and is used by the live window
+    * sendable.
+    * 
+    * @return double The value of the on-target threshold
+    */
     private double GetOnTargetDistanceErrorThreshold_FT () {
         return mOnTargetDistanceErrorThreshold_FT;
     }
@@ -763,23 +747,23 @@ public class LimelightVision implements Sendable, AutoCloseable {
 
 
     /**
-     * The constructor for the LimelightVision class.
-     * 
-     * @param limelight Limelight The limelight camera object used for this controller
-     * @param searchTimeout_S double The timeout used during <i>searching</i> state
-     * @param seekTimeout_S double The timeout used during <i>seeking</i> state
-     * @param seekRetryLimit int The number of allowed seek retries before failing
-     * @param P double The proportional gain
-     * @param I double The integral gain
-     * @param D double The differential gain
-     * @param F double The feed-forward gain
-     * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
-     *                                              tracking states
-     * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
-     *                                                 and tracking states
-     * @param targetSize_FT double The measured target size
-     * @param focalLength_FT double The measured focal length
-     */
+    * The constructor for the LimelightVision class.
+    * 
+    * @param limelight Limelight The limelight camera object used for this controller
+    * @param searchTimeout_S double The timeout used during <i>searching</i> state
+    * @param seekTimeout_S double The timeout used during <i>seeking</i> state
+    * @param seekRetryLimit int The number of allowed seek retries before failing
+    * @param P double The proportional gain
+    * @param I double The integral gain
+    * @param D double The differential gain
+    * @param F double The feed-forward gain
+    * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
+    *                                              tracking states
+    * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
+    *                                                 and tracking states
+    * @param targetSize_FT double The measured target size
+    * @param focalLength_FT double The measured focal length
+    */
     public LimelightVision ( Limelight limelight, double searchTimeout_S, double seekTimeout_S,
                              int seekRetryLimit, double P, double I, double D, double F,
                              double onTargetTurnErrorThreshold_DEG, double onTargetDistanceErrorThreshold_FT,
@@ -793,23 +777,23 @@ public class LimelightVision implements Sendable, AutoCloseable {
     }
 
     /**
-     * This mehtod will create a new LimelightVision object. The purpose of doing the constructor this way is to allow
-     *  for unit testing.
-     * 
-     * @param searchTimeout_S double The timeout used during <i>searching</i> state
-     * @param seekTimeout_S double The timeout used during <i>seeking</i> state
-     * @param seekRetryLimit int The number of allowed seek retries before failing
-     * @param P double The proportional gain
-     * @param I double The integral gain
-     * @param D double The differential gain
-     * @param F double The feed-forward gain
-     * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
-     *                                              tracking states
-     * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
-     *                                                 and tracking states
-     * @param targetSize_FT double The measured target size
-     * @param focalLength_FT double The measured focal length
-     */
+    * This mehtod will create a new LimelightVision object. The purpose of doing the constructor this way is to allow
+    *  for unit testing.
+    * 
+    * @param searchTimeout_S double The timeout used during <i>searching</i> state
+    * @param seekTimeout_S double The timeout used during <i>seeking</i> state
+    * @param seekRetryLimit int The number of allowed seek retries before failing
+    * @param P double The proportional gain
+    * @param I double The integral gain
+    * @param D double The differential gain
+    * @param F double The feed-forward gain
+    * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
+    *                                              tracking states
+    * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
+    *                                                 and tracking states
+    * @param targetSize_FT double The measured target size
+    * @param focalLength_FT double The measured focal length
+    */
     public static LimelightVision Create ( double searchTimeout_S, double seekTimeout_S,
                                            int seekRetryLimit, double P, double I, double D,
                                            double F, double onTargetTurnErrorThreshold_DEG,
@@ -822,11 +806,11 @@ public class LimelightVision implements Sendable, AutoCloseable {
     }
 
     /**
-     * We are overriding the initSendable and using it to send information back-and-forth between the robot program and
-     * the user PC for live PID tuning purposes.
-     * 
-     * @param builder SendableBuilder This is inherited from SubsystemBase
-     */
+    * We are overriding the initSendable and using it to send information back-and-forth between the robot program and
+    * the user PC for live PID tuning purposes.
+    * 
+    * @param builder SendableBuilder This is inherited from SubsystemBase
+    */
     @Override
     public void initSendable ( SendableBuilder builder ) {
         NetworkTableEntry entryTimeDelta = builder.getEntry( "Time Delta" );
