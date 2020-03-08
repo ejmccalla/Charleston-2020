@@ -44,10 +44,10 @@ public class Drivetrain extends SubsystemBase {
     private boolean mIsBrakeMode;
 
     // Logging data
-    public final String mLoggingHeader = "Current Command,Desired Command,Targeting State,Failing State, " +
-                                         "Found Target,On Target Turn,On Target Distance,Output Turn, " +
-                                         "Output Distance,dt (s),Error Turn (deg),Error Turn (deg/s),Error Turn Total " +
-                                         "(deg),Target Distance (ft),Error Distance (ft)";
+    public final String mLoggingHeader = "Current Command,Desired Command,Current Pipeline,Desired Pipeline,Targeting " +
+                                         "State,Failing State,Found Target,On Target Turn,On Target Distance,Output " +
+                                         "Turn,Output Distance,dt (s),Error Turn (deg),Error Turn (deg/s),Error Turn " +
+                                         "Total (deg),Distance Estimator,Target Distance (ft),Error Distance (ft)";
     public class LoggingData {
         public SharedState mLimelightVisionSharedState;
         public LoggingData ( SharedState limelightVisionSharedState ) {
@@ -159,9 +159,16 @@ public class Drivetrain extends SubsystemBase {
     }
 
     /**
+    * This method will set the Limelight vision controller to perform the drive-to-target command.
+    */
+    public void StartDriveToTarget ( double targetDistance ) {
+        mLimelightVisionController.DriveToTarget( targetDistance );
+    }
+
+    /**
     * This method will set the Limelight vision controller to idle.
     */
-    public void EndTurnToTarget () {
+    public void EndLimelightCommand () {
         mLimelightVisionController.Idle();
     }
 
@@ -170,11 +177,18 @@ public class Drivetrain extends SubsystemBase {
     * quickturn flag in order to get the robot to turn towards the target (taking into account the reversed direction
     * state).
     */
-    public void SetLimelightVisionControllerOutput () {
+    public void SetLimelightVisionControllerOutput ( boolean quickTurn ) {
         if ( mIsReversedDirection ) {
-            mDifferentialDrive.curvatureDrive( 0.0, -mLimelightVisionControllerSharedState.outputTurn, true );
+            //mDifferentialDrive.curvatureDrive( mLimelightVisionControllerSharedState.outputDistance,
+            //                                   -mLimelightVisionControllerSharedState.outputTurn, quickTurn );
+            mDifferentialDrive.arcadeDrive( mLimelightVisionControllerSharedState.outputDistance,
+                                            -mLimelightVisionControllerSharedState.outputTurn );
         } else {
-            mDifferentialDrive.curvatureDrive( 0.0, mLimelightVisionControllerSharedState.outputTurn, true );
+            //mDifferentialDrive.curvatureDrive( -mLimelightVisionControllerSharedState.outputDistance,
+            //                                   mLimelightVisionControllerSharedState.outputTurn, quickTurn );
+            mDifferentialDrive.arcadeDrive( -mLimelightVisionControllerSharedState.outputDistance,
+                                            mLimelightVisionControllerSharedState.outputTurn );
+
         }
     }
 
@@ -184,9 +198,11 @@ public class Drivetrain extends SubsystemBase {
     */
     public void SetLimelightVisionControllerOutput ( double throttle, boolean quickTurn ) {
         if ( mIsReversedDirection ) {
-            mDifferentialDrive.curvatureDrive( throttle, -mLimelightVisionControllerSharedState.outputTurn, quickTurn );
+            //mDifferentialDrive.curvatureDrive( throttle, -mLimelightVisionControllerSharedState.outputTurn, quickTurn );
+            mDifferentialDrive.arcadeDrive( throttle, -mLimelightVisionControllerSharedState.outputTurn );
         } else {
-            mDifferentialDrive.curvatureDrive( throttle, mLimelightVisionControllerSharedState.outputTurn, quickTurn );
+            //mDifferentialDrive.curvatureDrive( throttle, mLimelightVisionControllerSharedState.outputTurn, quickTurn );
+            mDifferentialDrive.arcadeDrive( throttle, mLimelightVisionControllerSharedState.outputTurn );
         }
     }
 
@@ -223,6 +239,8 @@ public class Drivetrain extends SubsystemBase {
         } else {
             SmartDashboard.putString( "Reversed Mode", "False" );
         }
+        SmartDashboard.putString( "Active Pipeline", mLimelightVisionControllerSharedState.currentPipeline.toString() );
+        SmartDashboard.putString( "Distance Estimator", mLimelightVisionControllerSharedState.distanceEstimator.toString() );
         SmartDashboard.putBoolean( "Found Target", mLimelightVisionControllerSharedState.foundTarget );
         SmartDashboard.putBoolean( "On Target", mLimelightVisionControllerSharedState.onTargetTurn );
         SmartDashboard.putString( "Desired Command", mLimelightVisionControllerSharedState.desiredCommand.toString() );
@@ -332,14 +350,19 @@ public class Drivetrain extends SubsystemBase {
         LimelightVision limelightVision = LimelightVision.Create( DRIVETRAIN.VISION_SEARCH_TIMEOUT_S,
                                                                   DRIVETRAIN.VISION_SEEK_TIMEOUT_S,
                                                                   DRIVETRAIN.VISION_SEEK_RETRY_LIMIT,
-                                                                  DRIVETRAIN.VISION_TURN_PID_KP,
-                                                                  DRIVETRAIN.VISION_TURN_PID_KI,
-                                                                  DRIVETRAIN.VISION_TURN_PID_KD,
-                                                                  DRIVETRAIN.VISION_TURN_PID_KF,
+                                                                  DRIVETRAIN.VISION_TURN_PID_P,
+                                                                  DRIVETRAIN.VISION_TURN_PID_I,
+                                                                  DRIVETRAIN.VISION_TURN_PID_D,
+                                                                  DRIVETRAIN.VISION_TURN_PID_F,
+                                                                  DRIVETRAIN.VISION_DISTANCE_PID_ALPHA,
                                                                   DRIVETRAIN.VISION_ON_TARGET_TURN_THRESHOLD_DEG,
                                                                   DRIVETRAIN.VISION_ON_TARGET_DISTANCE_THRESHOLD_FT,
+                                                                  DRIVETRAIN.VISION_DISTANCE_ESTIMATOR,
                                                                   DRIVETRAIN.VISION_TARGET_WIDTH_FT,
-                                                                  DRIVETRAIN.VISION_FOCAL_LENGTH_FT );
+                                                                  DRIVETRAIN.VISION_FOCAL_LENGTH_FT,
+                                                                  DRIVETRAIN.VISION_FLOOR_TO_TARGET_FT,
+                                                                  DRIVETRAIN.VISION_FLOOR_TO_LIMELIGHT_FT,
+                                                                  DRIVETRAIN.VISION_LIMELIGHT_MOUNT_ANGLE_DEG );
 
         return new Drivetrain( leftMaster, leftFollower_1, leftFollower_2, rightMaster, rightFollower_1,
                                rightFollower_2, differentialDrive, limelightVision, shifter );

@@ -11,6 +11,7 @@ import edu.wpi.first.wpiutil.math.MathUtil;
 import edu.wpi.first.wpilibj.DriverStation;
 import frc.robot.lib.drivers.Limelight;
 import frc.robot.lib.drivers.Limelight.LEDMode_t;
+import frc.robot.lib.drivers.Limelight.Pipeline_t;
 
 /**
 * The LimelightVision class implements control algorithms using vision as a direct feedback sensor.
@@ -30,7 +31,6 @@ import frc.robot.lib.drivers.Limelight.LEDMode_t;
 * <li>Calibrated Limelight Crosshair(s)
 * {@link https://docs.limelightvision.io/en/latest/crosshair_calibration.html}
 * <li>Calibrated Focal Length
-* {@link https://github.com/ejmccalla/Charleston-2020/blob/master/src/main/java/frc/robot/Robot.java}
 * <li>Calibrated Control Loop Parameters (PIDF and On-Target Thresholds)
 * </ul><p>
 * <b>Controller</b><p>
@@ -75,10 +75,18 @@ public class LimelightVision implements Sendable, AutoCloseable {
         LostTarget { @Override public String toString() { return "Lost Target"; } };
     }
 
+    public enum DistanceEstimator_t {
+        BoundingBox { @Override public String toString() { return "Bounding Box"; } },
+        FixedAngle { @Override public String toString() { return "Fixed Angle"; } };
+    }
+
     // Hardware
     private final Limelight mLimelight;
 
     // Constants set during object construction
+    private double mFloorToTarget_FT;
+    private double mFloorToLimelight_FT;
+    private double mMountAngleLimelight_DEG;
     private double mTargetSize_FT;
     private double mFocalLength_FT;
     private double mSearchTimeout_S;
@@ -86,7 +94,7 @@ public class LimelightVision implements Sendable, AutoCloseable {
     private int mSeekRetryLimit;
 
     // Tuning parameters set during object construction and updated during test mode via live window
-    private volatile double mP, mI, mD, mF;
+    private volatile double mP, mI, mD, mF, mAlpha;
     private volatile double mOnTargetTurnErrorThreshold_DEG;
     private volatile double mOnTargetDistanceErrorThreshold_FT;
 
@@ -102,6 +110,9 @@ public class LimelightVision implements Sendable, AutoCloseable {
     public class SharedState {
         public CommandState_t desiredCommand;
         public CommandState_t currentCommand;
+        public Pipeline_t desiredPipeline;
+        public Pipeline_t currentPipeline;
+        public DistanceEstimator_t distanceEstimator;
         public VisionState_t visionState;
         public FailingState_t failState;
         public boolean onTargetTurn;
@@ -118,6 +129,9 @@ public class LimelightVision implements Sendable, AutoCloseable {
         public SharedState () {
             desiredCommand = CommandState_t.Idle;
             currentCommand = CommandState_t.Idle;
+            desiredPipeline = Pipeline_t.Pipeline0;
+            currentPipeline = Pipeline_t.Pipeline0;
+            distanceEstimator = DistanceEstimator_t.BoundingBox;
             visionState = VisionState_t.Seeking;
             failState = FailingState_t.Ok;
             onTargetTurn = false;
@@ -146,19 +160,31 @@ public class LimelightVision implements Sendable, AutoCloseable {
 
     /**
     * This method will requrest the controller to turn to the target.
+    *
+    * @param pipeline Pipeline_t Overloaded: The pipeline to target with
     */
     public synchronized void TurnToTarget () {
         mSharedState.desiredCommand = CommandState_t.TurnToTarget;
+    }
+    public synchronized void TurnToTarget ( Pipeline_t pipeline ) {
+        mSharedState.desiredCommand = CommandState_t.TurnToTarget;
+        mSharedState.desiredPipeline = pipeline;
     }
 
     /**
     * This method will requrest the controller to drive to the target.
     *
     * @param targetDistance_FT double The target distance-to-target
+    * @param pipeline Pipeline_t Overloaded: The pipeline to target with
     */
-    public synchronized void DriveToTarget ( double targetDistance_FT) {
+    public synchronized void DriveToTarget ( double targetDistance_FT ) {
         mSharedState.desiredCommand = CommandState_t.DriveToTarget;
         mSharedState.targetDistance_FT = targetDistance_FT;
+    }
+    public synchronized void DriveToTarget ( double targetDistance_FT, Pipeline_t pipeline ) {
+        mSharedState.desiredCommand = CommandState_t.DriveToTarget;
+        mSharedState.targetDistance_FT = targetDistance_FT;
+        mSharedState.desiredPipeline = pipeline;
     }
 
     /**
@@ -258,7 +284,15 @@ public class LimelightVision implements Sendable, AutoCloseable {
                                                                    -mOnTargetTurnErrorThreshold_DEG, 
                                                                    mOnTargetTurnErrorThreshold_DEG );
             
-            updatedState.currentErrorDistance_FT = updatedState.targetDistance_FT - EstimateDistance( mLimelight.GetHorizontalPixels() );
+            switch ( updatedState.distanceEstimator ) {
+                case BoundingBox:
+                    updatedState.currentErrorDistance_FT = updatedState.targetDistance_FT - EstimateBoundingBoxDistance( mLimelight.GetHorizontalPixels() );
+                    break;
+                case FixedAngle:
+                    updatedState.currentErrorDistance_FT = updatedState.targetDistance_FT - EstimateFixedAngleDistance( mLimelight.GetVerticalToTargetDeg() );
+                    break;
+            }
+
             if ( Math.abs( updatedState.currentErrorXPosition_DEG ) < mOnTargetTurnErrorThreshold_DEG ) {
                 updatedState.onTargetTurn = true;
             } else {
@@ -284,17 +318,24 @@ public class LimelightVision implements Sendable, AutoCloseable {
         if ( updatedState.currentCommand != updatedState.desiredCommand ) {
             updatedState.currentCommand = updatedState.desiredCommand;
             updatedState.visionState = VisionState_t.Seeking;
+            updatedState.failState = FailingState_t.Ok;
             mSeekRetries = 0;
             SetSeekTimer();
-            updatedState.failState = FailingState_t.Ok;
         }
+
+        // Is there a new pipeline request?
+        if ( updatedState.currentPipeline != updatedState.desiredPipeline ) {
+            updatedState.currentPipeline = updatedState.desiredPipeline;
+            mLimelight.SetPipeline( updatedState.desiredPipeline );
+        }
+
+        // Is there a targeting command being executed?
         if ( updatedState.currentCommand == CommandState_t.Idle ) {
             mLimelight.SetLedMode( LEDMode_t.Off );
         
         } else {
             mLimelight.SetLedMode( LEDMode_t.On );
         }
-
 
         // Update the vision and failing states as well as the output
         switch ( updatedState.currentCommand ) {
@@ -548,17 +589,23 @@ public class LimelightVision implements Sendable, AutoCloseable {
     * @param I double The integral gain
     * @param D double The differential gain
     * @param F double The feed-forward gain
+    * @param alpha double The drive-to-target command alpha gain
     * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
     *                                              tracking states
     * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
     *                                                 and tracking states
+    * @param distanceEstimator DistanceEstimator_t The distance estimator calculation to use
     * @param targetSize_FT double The measured target size
     * @param focalLength_FT double The measured focal length
+    * @param floorToTarget_FT double The measured floor to target height
+    * @param floorToLimelight_FT double The measured floot to limelight height
+    * @param mountAngleLimelight_DEG double The measured mounting angle
     */
     private void Initialize ( double searchTimeout_S, double seekTimeout_S, int seekRetryLimit,
-                              double P, double I, double D, double F,
+                              double P, double I, double D, double F, double alpha,
                               double onTargetTurnErrorThreshold_DEG, double onTargetDistanceErrorThreshold_FT,
-                              double targetSize_FT, double focalLength_FT ) {
+                              DistanceEstimator_t distanceEstimator, double targetSize_FT, double focalLength_FT,
+                              double floorToTarget_FT, double floorToLimelight_FT, double mountAngleLimelight_DEG ) {
 
         // Constants set during object construction
         mSearchTimeout_S = searchTimeout_S;
@@ -566,6 +613,10 @@ public class LimelightVision implements Sendable, AutoCloseable {
         mSeekRetryLimit = seekRetryLimit;
         mTargetSize_FT = targetSize_FT;
         mFocalLength_FT = focalLength_FT;
+        mFloorToTarget_FT = floorToTarget_FT;
+        mFloorToLimelight_FT = floorToLimelight_FT;
+        mMountAngleLimelight_DEG = mountAngleLimelight_DEG;
+    
 
         // Tuning parameters set during object construction and updated durint test mode
         // via live window
@@ -573,6 +624,7 @@ public class LimelightVision implements Sendable, AutoCloseable {
         mI = I;
         mD = D;
         mF = F;
+        mAlpha = alpha;
         mOnTargetTurnErrorThreshold_DEG = onTargetTurnErrorThreshold_DEG;
         mOnTargetDistanceErrorThreshold_FT = onTargetDistanceErrorThreshold_FT;
 
@@ -585,6 +637,7 @@ public class LimelightVision implements Sendable, AutoCloseable {
 
         // Shated state variables
         mSharedState = new SharedState();
+        mSharedState.distanceEstimator = distanceEstimator;
     }
 
     /**
@@ -595,7 +648,7 @@ public class LimelightVision implements Sendable, AutoCloseable {
     */
     private double CalculateDriveToTargetOutput ( double currentErrorXPosition_DEG,
                                                   double currentErrorDistance_FT ) {
-        return (1 - (Math.abs(currentErrorXPosition_DEG) / 29.8)) * 0.2 * currentErrorDistance_FT;
+        return ( 1 - ( Math.abs( currentErrorXPosition_DEG ) / 29.8 ) ) * mAlpha * currentErrorDistance_FT;
     }
 
     /**
@@ -609,16 +662,24 @@ public class LimelightVision implements Sendable, AutoCloseable {
                                                  double totalErrorXPosition_DEG,
                                                  double currentErrorXVelocity_DEGPS ) {
         return mP * currentErrorXPosition_DEG + mI * totalErrorXPosition_DEG + mD * currentErrorXVelocity_DEGPS;
-        //return 0.0;
     }
 
     /**
-    * This method will estimate the distance-to-target.
+    * This method will use the bounding box to estimate the distance-to-target.
     * 
     * @param pixels double The size of the target in pixels
     */
-    private double EstimateDistance ( double pixels ) {
+    private double EstimateBoundingBoxDistance ( double pixels ) {
         return ( mTargetSize_FT * mFocalLength_FT ) / pixels;
+    }
+
+    /**
+    * This method will use the fixed angle to estimate the distance-to-target.
+    * 
+    * @param pixels double The target angle in the LL Y-direction
+    */
+    private double EstimateFixedAngleDistance ( double targetAngle_DEG ) {
+        return ( mFloorToTarget_FT - mFloorToLimelight_FT ) / Math.tan( mMountAngleLimelight_DEG + targetAngle_DEG );
     }
 
     /**
@@ -694,10 +755,28 @@ public class LimelightVision implements Sendable, AutoCloseable {
     /**
     * This method will get the feedforward gain of the controller and is used by the live window sendable.
     * 
-    * @return double The value of the FF-gain
+    * @return double The value of the Feedforward-gain
     */
     private double GetF () {
         return mF;
+    }
+
+    /**
+    * This method will set the alpha gain of the controller and is used by the live window sendable.
+    *
+    * @param f double Alpha-gain
+    */
+    private void SetAlpha ( double alpha ) {
+        mAlpha = alpha;
+    }
+
+    /**
+    * This method will get the alpha gain of the controller and is used by the live window sendable.
+    * 
+    * @return double The value of the Alpha-gain
+    */
+    private double GetAlpha () {
+        return mAlpha;
     }
 
     /**
@@ -740,6 +819,28 @@ public class LimelightVision implements Sendable, AutoCloseable {
         return mOnTargetDistanceErrorThreshold_FT;
     }
 
+    /**
+    * This method will set the distance estimator controller uses and is used by the live window sendable.
+    *
+    * @param distanceEstimator boolean True for bounding box, false for fixed angle
+    */
+    private synchronized void SetDistanceEstimator ( boolean distanceEstimator) {
+        if ( distanceEstimator ) {
+            mSharedState.distanceEstimator = DistanceEstimator_t.BoundingBox;
+        } else {
+            mSharedState.distanceEstimator = DistanceEstimator_t.FixedAngle;
+        }
+    }
+
+    /**
+    * This method will get the distance estimator controller uses and is used by the live window sendable.
+    *
+    * @param distanceEstimator boolean True for bounding box, false for fixed angle
+    */
+    private boolean GetDistanceEstimator () {
+        return mSharedState.distanceEstimator == DistanceEstimator_t.BoundingBox;
+    }
+
 
     // -----------------------------------------------------------------------------------------------------------------
     /* CLASS CONSTRUCTOR AND OVERRIDES */
@@ -757,20 +858,27 @@ public class LimelightVision implements Sendable, AutoCloseable {
     * @param I double The integral gain
     * @param D double The differential gain
     * @param F double The feed-forward gain
+    * @param alpha double The drive-to-target command alpha gain
     * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
     *                                              tracking states
     * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
     *                                                 and tracking states
+    * @param distanceEstimator DistanceEstimator_t The distance estimator calculation to use
     * @param targetSize_FT double The measured target size
     * @param focalLength_FT double The measured focal length
+    * @param floorToTarget_FT double The measured floor to target height
+    * @param floorToLimelight_FT double The measured floot to limelight height
+    * @param mountAngleLimelight_DEG double The measured mounting angle
     */
     public LimelightVision ( Limelight limelight, double searchTimeout_S, double seekTimeout_S,
-                             int seekRetryLimit, double P, double I, double D, double F,
+                             int seekRetryLimit, double P, double I, double D, double F, double alpha,
                              double onTargetTurnErrorThreshold_DEG, double onTargetDistanceErrorThreshold_FT,
-                             double targetSize_FT, double focalLength_FT ) {
+                             DistanceEstimator_t distanceEstimator, double targetSize_FT, double focalLength_FT,
+                             double floorToTarget_FT, double floorToLimelight_FT, double mountAngleLimelight_DEG ) {
         mLimelight = limelight;
-        Initialize( searchTimeout_S, seekTimeout_S, seekRetryLimit, P, I, D, F, onTargetTurnErrorThreshold_DEG,
-                    onTargetDistanceErrorThreshold_FT, targetSize_FT, focalLength_FT );
+        Initialize( searchTimeout_S, seekTimeout_S, seekRetryLimit, P, I, D, F, alpha, onTargetTurnErrorThreshold_DEG,
+                    onTargetDistanceErrorThreshold_FT, distanceEstimator, targetSize_FT, focalLength_FT, floorToTarget_FT,
+                    floorToLimelight_FT, floorToLimelight_FT );
 
         mInstances++;
         SendableRegistry.addLW( this, "LimelightVision", mInstances );
@@ -778,7 +886,7 @@ public class LimelightVision implements Sendable, AutoCloseable {
 
     /**
     * This mehtod will create a new LimelightVision object. The purpose of doing the constructor this way is to allow
-    *  for unit testing.
+    * for unit testing.
     * 
     * @param searchTimeout_S double The timeout used during <i>searching</i> state
     * @param seekTimeout_S double The timeout used during <i>seeking</i> state
@@ -787,22 +895,27 @@ public class LimelightVision implements Sendable, AutoCloseable {
     * @param I double The integral gain
     * @param D double The differential gain
     * @param F double The feed-forward gain
+    * @param alpha double The drive-to-target command alpha gain
     * @param onTargetTurnErrorThreshold_DEG double The on-target turning threshold used to differentiate seeking and
     *                                              tracking states
     * @param onTargetDistanceErrorThreshold_FT double The on-target distance threshold used to differentiate seeking
     *                                                 and tracking states
+    * @param distanceEstimator DistanceEstimator_t The distance estimator calculation to use
     * @param targetSize_FT double The measured target size
     * @param focalLength_FT double The measured focal length
+    * @param floorToTarget_FT double The measured floor to target height
+    * @param floorToLimelight_FT double The measured floot to limelight height
+    * @param mountAngleLimelight_DEG double The measured mounting angle
     */
-    public static LimelightVision Create ( double searchTimeout_S, double seekTimeout_S,
-                                           int seekRetryLimit, double P, double I, double D,
-                                           double F, double onTargetTurnErrorThreshold_DEG,
-                                           double onTargetDistanceErrorThreshold_FT, double targetSize_FT,
-                                           double focalLength_FT ) {
+    public static LimelightVision Create ( double searchTimeout_S, double seekTimeout_S, int seekRetryLimit, double P,
+                                           double I, double D, double F, double alpha, double onTargetTurnErrorThreshold_DEG,
+                                           double onTargetDistanceErrorThreshold_FT, DistanceEstimator_t distanceEstimator,
+                                           double targetSize_FT, double focalLength_FT, double floorToTarget_FT,
+                                           double floorToLimelight_FT, double mountAngleLimelight_DEG ) {
         Limelight limelight = new Limelight();
-        return new LimelightVision ( limelight, searchTimeout_S, seekTimeout_S, seekRetryLimit, P, I, D, F,
-                                     onTargetTurnErrorThreshold_DEG, onTargetDistanceErrorThreshold_FT,
-                                     targetSize_FT, focalLength_FT );
+        return new LimelightVision ( limelight, searchTimeout_S, seekTimeout_S, seekRetryLimit, P, I, D, F, alpha,
+                                     onTargetTurnErrorThreshold_DEG, onTargetDistanceErrorThreshold_FT, distanceEstimator,
+                                     targetSize_FT, focalLength_FT, floorToTarget_FT, floorToLimelight_FT, floorToLimelight_FT );
     }
 
     /**
@@ -830,6 +943,8 @@ public class LimelightVision implements Sendable, AutoCloseable {
         builder.addDoubleProperty( "I", this::GetI, this::SetI );
         builder.addDoubleProperty( "D", this::GetD, this::SetD );
         builder.addDoubleProperty( "F", this::GetF, this::SetF );
+        builder.addDoubleProperty( "Alpha", this::GetAlpha, this::SetAlpha );
+        builder.addBooleanProperty( "Distance Estimator", this::GetDistanceEstimator, this::SetDistanceEstimator );
         builder.addDoubleProperty( "Turn On-Target Threshold", this::GetOnTargetTurnErrorThreshold,
                                    this::SetOnTargetTurnErrorThreshold );
         builder.addDoubleProperty( "Distance On-Target Threshold", this::GetOnTargetDistanceErrorThreshold_FT,

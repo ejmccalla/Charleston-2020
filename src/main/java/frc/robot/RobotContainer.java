@@ -4,7 +4,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.SolenoidBase;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.InstantCommand;
+//import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -18,6 +18,7 @@ import frc.robot.lib.drivers.Photoeye;
 import frc.robot.subsystems.Drivetrain;
 import frc.robot.commands.TeleopDrive;
 import frc.robot.commands.TurnToTarget;
+import frc.robot.commands.DriveToTarget;
 import frc.robot.commands.Auto1;
 import frc.robot.commands.Auto2;
 import org.slf4j.Logger;
@@ -127,14 +128,6 @@ public class RobotContainer {
                           );
     }
 
-    /**
-    * Workaround to use joysticks and buttons during Test mode.
-    */    
-    public void TestModeSetup () {
-        ConfigureButtonBindings();
-        mDrivetrain.setDefaultCommand( new TeleopDrive( mDrivetrain, mDriverJoystickThrottle, mDriverJoystickTurn ) );
-    }
-
 
     //-----------------------------------------------------------------------------------------------------------------
     //-----------------------------------------------------------------------------------------------------------------
@@ -145,7 +138,8 @@ public class RobotContainer {
     * to the driver/operators controls.
     */
     private void ConfigureButtonBindings () {
-        mDriverJoystickThrottleButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetHighGear( !mDrivetrain.IsHighGear() ), mDrivetrain ) );
+        //mDriverJoystickThrottleButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetHighGear( !mDrivetrain.IsHighGear() ), mDrivetrain ) );
+        mDriverJoystickThrottleButton.whileHeld( new DriveToTarget( mDrivetrain, 3.5 ) );
         //mDriverJoystickTurnButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetReversedDirection( !mDrivetrain.IsReversedDirection() ), mDrivetrain ) );
         mDriverJoystickTurnButton.whileHeld( new TurnToTarget( mDrivetrain, mDriverJoystickThrottle ) );
     }

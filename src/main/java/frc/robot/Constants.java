@@ -1,5 +1,7 @@
 package frc.robot;
 
+import frc.robot.lib.controllers.LimelightVision.DistanceEstimator_t;
+
 public final class Constants {
 
     /**
@@ -58,14 +60,19 @@ public final class Constants {
         public static final double VISION_SEARCH_TIMEOUT_S = 3.0;               // Vision search (look for target) timeout threshold
         public static final double VISION_SEEK_TIMEOUT_S = 2.0;                 // Vision seek (get on target) timeout threshold
         public static final int VISION_SEEK_RETRY_LIMIT = 3;                    // Vision seek retry limit threshold
-        public static final double VISION_TURN_PID_KP = 2.98 / 29.8;            // Vision turn-to-target command proportional gain
-        public static final double VISION_TURN_PID_KI = 0.0;                    // Vision turn-to-target command intgral gain
-        public static final double VISION_TURN_PID_KD = 0.0;                    // Vision turn-to-target command derivative gain
-        public static final double VISION_TURN_PID_KF = 0.0;                    // Vision turn-to-target command feed-forward
+        public static final double VISION_TURN_PID_P = 2.98 / 29.8;             // Vision turn-to-target command proportional gain
+        public static final double VISION_TURN_PID_I = 0.0;                     // Vision turn-to-target command intgral gain
+        public static final double VISION_TURN_PID_D = 0.0;                     // Vision turn-to-target command derivative gain
+        public static final double VISION_TURN_PID_F = 0.0;                     // Vision turn-to-target command feed-forward
+        public static final double VISION_DISTANCE_PID_ALPHA = 0.2;             // Vision drive-to-target command *proportional gain
         public static final double VISION_ON_TARGET_TURN_THRESHOLD_DEG = 1.5;   // Vision turn-to-target command acceptable error threshold
         public static final double VISION_ON_TARGET_DISTANCE_THRESHOLD_FT = 0.5;// Vision drive-to-target command acceptable error threshold
-        public static final double VISION_TARGET_WIDTH_FT = 21.5 / 12.0;        // Vision known target width in feet
-        public static final double VISION_FOCAL_LENGTH_FT = (67.0*7.0)/VISION_TARGET_WIDTH_FT;// Vision focal length = (measured_target_pixels * known_distance_to_taget) / known_target_width
+        public static final DistanceEstimator_t VISION_DISTANCE_ESTIMATOR = DistanceEstimator_t.BoundingBox; // Vision distance estimator calculation
+        public static final double VISION_TARGET_WIDTH_FT = 21.5 / 12.0;        // Vision known target width in feet (bounding box distance estimator)
+        public static final double VISION_FOCAL_LENGTH_FT = (67.0*7.0)/VISION_TARGET_WIDTH_FT;// Vision focal length = (measured_target_pixels * known_distance_to_taget) / known_target_width (bounding box distance estimator)
+        public static final double VISION_FLOOR_TO_TARGET_FT = 26.0 / 12.0;     // Vision known floor-to-target (bounding box distance estimator)
+        public static final double VISION_FLOOR_TO_LIMELIGHT_FT = 1.0;          // Vision known floor-to-limelight (bounding box distance estimator)
+        public static final double VISION_LIMELIGHT_MOUNT_ANGLE_DEG = 0.0;      // Vision known limelight mounting angle (bounding box distance estimator)
     }
 
 }

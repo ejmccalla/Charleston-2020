@@ -1,5 +1,6 @@
 package frc.robot.commands;
 
+import java.lang.Math;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.CommandBase;
 import frc.robot.Constants.DRIVER;
@@ -17,8 +18,8 @@ public class TurnToTarget extends CommandBase {
 
     @Override
     public void execute() {
-        if ( mDriverThrottle.getX() < DRIVER.QUICKTURN_THRESHOLD ) {
-            mDrivetrain.SetLimelightVisionControllerOutput( mDriverThrottle.getX(), true );
+        if ( Math.abs( mDriverThrottle.getX() ) < DRIVER.QUICKTURN_THRESHOLD ) {
+            mDrivetrain.SetLimelightVisionControllerOutput( 0.0, true );
         } else {
             mDrivetrain.SetLimelightVisionControllerOutput( mDriverThrottle.getX(), false );
         }
@@ -26,7 +27,7 @@ public class TurnToTarget extends CommandBase {
 
     @Override
     public void end ( boolean interrupted ) {
-        mDrivetrain.EndTurnToTarget();
+        mDrivetrain.EndLimelightCommand();
     }
 
     @Override
