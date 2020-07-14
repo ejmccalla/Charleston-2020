@@ -4,7 +4,7 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.SolenoidBase;
 import edu.wpi.first.wpilibj.Joystick;
 import edu.wpi.first.wpilibj2.command.Command;
-//import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -45,6 +45,8 @@ public class RobotContainer {
     private final JoystickButton mDriverJoystickThrottleButton;
     private final Joystick mDriverJoystickTurn;
     private final JoystickButton mDriverJoystickTurnButton;
+    private final JoystickButton mDriverButtonBoard_2;
+    private final JoystickButton mDriverButtonBoard_3;
     private final PressureSensor mPressureSensor;
     private final Photoeye mPhotoeye;
     private final PowerDistributionPanel mPDP;
@@ -138,10 +140,10 @@ public class RobotContainer {
     * to the driver/operators controls.
     */
     private void ConfigureButtonBindings () {
-        //mDriverJoystickThrottleButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetHighGear( !mDrivetrain.IsHighGear() ), mDrivetrain ) );
-        mDriverJoystickThrottleButton.whileHeld( new DriveToTarget( mDrivetrain, 3.5 ) );
-        //mDriverJoystickTurnButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetReversedDirection( !mDrivetrain.IsReversedDirection() ), mDrivetrain ) );
-        mDriverJoystickTurnButton.whileHeld( new TurnToTarget( mDrivetrain, mDriverJoystickThrottle ) );
+        mDriverJoystickThrottleButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetHighGear( !mDrivetrain.IsHighGear() ), mDrivetrain ) );
+        mDriverButtonBoard_2.whileHeld( new DriveToTarget( mDrivetrain, 3.5 ) );
+        mDriverJoystickTurnButton.whenPressed( new InstantCommand( () -> mDrivetrain.SetReversedDirection( !mDrivetrain.IsReversedDirection() ), mDrivetrain ) );
+        mDriverButtonBoard_3.whileHeld( new TurnToTarget( mDrivetrain, mDriverJoystickThrottle ) );
     }
 
     /**
@@ -168,22 +170,27 @@ public class RobotContainer {
     /**
     * This is the robot container class consructor.  It is setup for injecting the dependencies in order to allow for
     * mocking those dependencies during unit-testing.
-    * @param driverJoystickThrottle Joystick driver joystick throttle
-    * @param driverJoystickThrottleButton JoystickButton driver joystick throttle button
-    * @param driverJoystickTurn Joystick driver joystick turn
-    * @param driverJoystickTurnButton JoystickButton driver joystick turn button
-    * @param pressureSensor PressureSensor analog pressure sensor
-    * @param photoeye Photoeye digital photo-eye
+    * @param driverJoystickThrottle Joystick Driver joystick throttle
+    * @param driverJoystickThrottleButton JoystickButton Driver joystick throttle button
+    * @param driverJoystickTurn Joystick Driver joystick turn
+    * @param driverJoystickTurnButton JoystickButton Driver joystick turn button
+    * @param driverButtonBoard_2 JoystickButton Driver button board 2
+    * @param driverButtonBoard_3 JoystickButton Driver button board 3
+    * @param pressureSensor PressureSensor Analog pressure sensor
+    * @param photoeye Photoeye Digital photo-eye
     * @param powerDistributionPanel PowerDistributionPanel power distribution panel
     */
     public RobotContainer ( Joystick driverJoystickThrottle, JoystickButton driverJoystickThrottleButton,
                             Joystick driverJoystickTurn, JoystickButton driverJoystickTurnButton,
+                            JoystickButton driverButtonBoard_2, JoystickButton driverButtonBoard_3,
                             PressureSensor pressureSensor, Photoeye photoeye,
                             PowerDistributionPanel powerDistributionPanel ) {
         mDriverJoystickThrottle = driverJoystickThrottle;
         mDriverJoystickThrottleButton = driverJoystickThrottleButton;
         mDriverJoystickTurn = driverJoystickTurn;
         mDriverJoystickTurnButton = driverJoystickTurnButton;
+        mDriverButtonBoard_2 = driverButtonBoard_2;
+        mDriverButtonBoard_3 = driverButtonBoard_3;
         mPressureSensor = pressureSensor;
         mPhotoeye = photoeye;
         mPDP = powerDistributionPanel;
@@ -200,6 +207,9 @@ public class RobotContainer {
         JoystickButton driverJoystickThrottleButton = new JoystickButton( driverJoystickThrottle, 1 );
         Joystick driverJoystickTurn = new Joystick( DRIVER.JOYSTICK_TURN );
         JoystickButton driverJoystickTurnButton = new JoystickButton( driverJoystickTurn, 1 );
+        final Joystick driverButtonBoard = new Joystick( DRIVER.DRIVER_BUTTON_BOARD );
+        JoystickButton driverButtonBoard_2 = new JoystickButton( driverButtonBoard, 2 );
+        JoystickButton driverButtonBoard_3 = new JoystickButton( driverButtonBoard, 3 );
         PressureSensor pressureSensor = new PressureSensor( PRESSURE_SENSOR.ANALOG_CHANNEL,
                                                             PRESSURE_SENSOR.VOLTS_AT_ZERO_PRESSURE,
                                                             PRESSURE_SENSOR.PSI_PER_VOLT );
@@ -207,7 +217,8 @@ public class RobotContainer {
         PowerDistributionPanel powerDistributionPanel = new PowerDistributionPanel( HARDWARE.PDP_ID );
 
         return new RobotContainer( driverJoystickThrottle, driverJoystickThrottleButton, driverJoystickTurn,
-                                   driverJoystickTurnButton, pressureSensor, photoeye, powerDistributionPanel );
+                                   driverJoystickTurnButton, driverButtonBoard_2, driverButtonBoard_3,
+                                   pressureSensor, photoeye, powerDistributionPanel );
     }
 
 }

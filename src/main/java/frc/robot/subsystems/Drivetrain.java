@@ -6,6 +6,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonSRX;
 import com.ctre.phoenix.motorcontrol.can.WPI_VictorSPX;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
+import edu.wpi.first.wpilibj.SpeedControllerGroup;
 import edu.wpi.first.wpilibj.drive.DifferentialDrive;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.Constants.HARDWARE;
@@ -250,7 +251,7 @@ public class Drivetrain extends SubsystemBase {
     }
 
     /**
-    * This method will return all of the logging data 
+    * This method will return all of the logging data.
     *
     * @return LoggingData A class holding all of the logging data
     */
@@ -268,16 +269,27 @@ public class Drivetrain extends SubsystemBase {
     * This method will initialize the Drivetrain subsystem.
     */
     private void Initialize () {
-        ResetState();
+        ResetMotorControllers();
         ResetSensors();
-        mLimelightVisionControllerSharedState = mLimelightVisionController.GetSharedState();
-        mLoggingData = new LoggingData( mLimelightVisionControllerSharedState );
+        ResetState();
     }
 
     /**
     * This method will reset senor and vision controller information.
     */ 
     private void ResetSensors () {
+    }
+
+    /**
+    * This method will reset senor and vision controller information.
+    */ 
+    private void ResetMotorControllers () {
+        TalonSRX.ConfigureTalonSRX( mLeftMaster );
+        VictorSPX.ConfigureVictorSPX( mLeftFollower_1 );
+        VictorSPX.ConfigureVictorSPX( mLeftFollower_2 );
+        TalonSRX.ConfigureTalonSRX( mRightMaster );
+        VictorSPX.ConfigureVictorSPX( mRightFollower_1 );
+        VictorSPX.ConfigureVictorSPX( mRightFollower_2 );
     }
 
     /**
@@ -307,7 +319,8 @@ public class Drivetrain extends SubsystemBase {
     * @param rightMaster WPI_TalonSRX A Talon SRX motor controller object
     * @param rightFollower_1 WPI_VictorSPX A Talon SRX motor controller object
     * @param rightFollower_2 WPI_VictorSPX A Talon SRX motor controller object
-    * @param rightFollower_2 WPI_VictorSPX A Talon SRX motor controller object
+    * @param differentialDrive DifferentialDrive A differential drive object
+    * @param limelightVision LimelightVision A limelight vision controller object
     * @param shifter DoubleSolenoid A double solenoid object for shifting the transmission
     */  
     public Drivetrain ( WPI_TalonSRX leftMaster, WPI_VictorSPX leftFollower_1, WPI_VictorSPX leftFollower_2,
@@ -322,8 +335,10 @@ public class Drivetrain extends SubsystemBase {
         mShifter = shifter;
         mDifferentialDrive = differentialDrive;
         mLimelightVisionController = limelightVision;
+        mLimelightVisionControllerSharedState = mLimelightVisionController.GetSharedState();
+        mLoggingData = new LoggingData( mLimelightVisionControllerSharedState );
         if ( DRIVETRAIN.VISION_THREADED ) {
-            mLimelightVisionControllerThread = new Notifier (mLimelightVisionController.mThread); 
+            mLimelightVisionControllerThread = new Notifier ( mLimelightVisionController.mThread ); 
             mLimelightVisionControllerThread.startPeriodic( 0.01 );
         }
         Initialize();
@@ -334,19 +349,16 @@ public class Drivetrain extends SubsystemBase {
     * unit testing.
     */  
     public static Drivetrain Create () {
-        WPI_TalonSRX leftMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( DRIVETRAIN.LEFT_MASTER_ID) );
-        WPI_VictorSPX leftFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_1_ID),
-                                                                                     leftMaster );
-        WPI_VictorSPX leftFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_2_ID),
-                                                                                     leftMaster );
-        WPI_TalonSRX rightMaster = TalonSRX.createTalonSRXWithEncoder( new WPI_TalonSRX( DRIVETRAIN.RIGHT_MASTER_ID) );
-        WPI_VictorSPX rightFollower_1 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_1_ID),
-                                                                                      rightMaster );
-        WPI_VictorSPX rightFollower_2 = VictorSPX.createVictorSPX( new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_2_ID),
-                                                                                      rightMaster );
+        WPI_TalonSRX leftMaster = new WPI_TalonSRX( DRIVETRAIN.LEFT_MASTER_ID );
+        WPI_VictorSPX leftFollower_1 = new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_1_ID );
+        WPI_VictorSPX leftFollower_2 = new WPI_VictorSPX( DRIVETRAIN.LEFT_FOLLOWER_2_ID );
+        WPI_TalonSRX rightMaster = new WPI_TalonSRX( DRIVETRAIN.RIGHT_MASTER_ID );
+        WPI_VictorSPX rightFollower_1 = new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_1_ID );
+        WPI_VictorSPX rightFollower_2 = new WPI_VictorSPX( DRIVETRAIN.RIGHT_FOLLOWER_2_ID );
         DoubleSolenoid shifter = new DoubleSolenoid( HARDWARE.PCM_ID, DRIVETRAIN.HIGH_GEAR_SOLENOID_ID, 
                                                      DRIVETRAIN.LOW_GEAR_SOLENOID_ID );
-        DifferentialDrive differentialDrive = new DifferentialDrive( leftMaster, rightMaster );
+        DifferentialDrive differentialDrive = new DifferentialDrive( new SpeedControllerGroup(leftMaster, leftFollower_1, leftFollower_2),
+                                                                     new SpeedControllerGroup(rightMaster, rightFollower_1, rightFollower_2) );
         LimelightVision limelightVision = LimelightVision.Create( DRIVETRAIN.VISION_SEARCH_TIMEOUT_S,
                                                                   DRIVETRAIN.VISION_SEEK_TIMEOUT_S,
                                                                   DRIVETRAIN.VISION_SEEK_RETRY_LIMIT,
@@ -354,7 +366,10 @@ public class Drivetrain extends SubsystemBase {
                                                                   DRIVETRAIN.VISION_TURN_PID_I,
                                                                   DRIVETRAIN.VISION_TURN_PID_D,
                                                                   DRIVETRAIN.VISION_TURN_PID_F,
-                                                                  DRIVETRAIN.VISION_DISTANCE_PID_ALPHA,
+                                                                  DRIVETRAIN.VISION_DISTANCE_PID_P,
+                                                                  DRIVETRAIN.VISION_DISTANCE_PID_I,
+                                                                  DRIVETRAIN.VISION_DISTANCE_PID_D,
+                                                                  DRIVETRAIN.VISION_DISTANCE_PID_F,
                                                                   DRIVETRAIN.VISION_ON_TARGET_TURN_THRESHOLD_DEG,
                                                                   DRIVETRAIN.VISION_ON_TARGET_DISTANCE_THRESHOLD_FT,
                                                                   DRIVETRAIN.VISION_DISTANCE_ESTIMATOR,
@@ -363,6 +378,10 @@ public class Drivetrain extends SubsystemBase {
                                                                   DRIVETRAIN.VISION_FLOOR_TO_TARGET_FT,
                                                                   DRIVETRAIN.VISION_FLOOR_TO_LIMELIGHT_FT,
                                                                   DRIVETRAIN.VISION_LIMELIGHT_MOUNT_ANGLE_DEG );
+
+
+                                                          
+
 
         return new Drivetrain( leftMaster, leftFollower_1, leftFollower_2, rightMaster, rightFollower_1,
                                rightFollower_2, differentialDrive, limelightVision, shifter );

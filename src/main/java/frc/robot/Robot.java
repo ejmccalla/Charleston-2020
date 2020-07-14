@@ -4,6 +4,10 @@ import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.RobotContainer.MatchState_t;
+import edu.wpi.first.wpilibj.CAN;
+// import java.text.DateFormat;
+// import java.text.SimpleDateFormat;
+// import edu.wpi.first.wpilibj.DriverStation;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -17,6 +21,9 @@ public class Robot extends TimedRobot {
     private final Logger mLogger = LoggerFactory.getLogger( Robot.class );
     private RobotContainer mRobotContainer;
     private Command mAutonomousCommand;
+    private CAN mCanbusLogger = new CAN(3);
+    private byte[] mCanbusLoggerStart = {1, 0, 0, 0, 0, 0, 0, 0};
+    private byte[] mCanbusLoggerStop = {0, 0, 0, 0, 0, 0, 0, 0};
 
     /**
     * This method is called when the robot is first powered up.  This method get called only once.
@@ -39,7 +46,8 @@ public class Robot extends TimedRobot {
         mLogger.info( "<=========== DISABLED INIT ===========>" );
         mRobotContainer.SetMatchState( MatchState_t.disabledInit );
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
-        mRobotContainer.UpdateSmartDashboard();        
+        mRobotContainer.UpdateSmartDashboard();
+        mCanbusLogger.writePacket(mCanbusLoggerStop, 0);
     }
 
     /**
@@ -71,7 +79,8 @@ public class Robot extends TimedRobot {
         }
         CommandScheduler.getInstance().run();
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
-        mRobotContainer.UpdateSmartDashboard();          
+        mRobotContainer.UpdateSmartDashboard();
+        mCanbusLogger.writePacket(mCanbusLoggerStart, 0);
     }
 
     /**
@@ -130,7 +139,7 @@ public class Robot extends TimedRobot {
     @Override
     public void testInit () {
         mLogger.info( "<=========== TEST INIT ===========>" );
-        CommandScheduler.getInstance().enable();
+        CommandScheduler.getInstance().enable();            // Re-enable the command scheduler
         //mRobotContainer.LogRobotDataToRoboRio( mLogger );
         mRobotContainer.UpdateSmartDashboard();
     }    
@@ -140,8 +149,8 @@ public class Robot extends TimedRobot {
     */
     @Override
     public void testPeriodic () {
-        mRobotContainer.UpdateSmartDashboard();
         CommandScheduler.getInstance().run();
+        mRobotContainer.UpdateSmartDashboard();
     }
 
 }

@@ -10,8 +10,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
-* This class is used as a wrapper around the WPI_VictorSPX object in order to initialize the motor controller to known
-* configuration.  Also, any sticky errors present will be logged and cleared.
+* This class provides methods to configure Victor SPX motor controllers as both masters and followers.  Also, any
+* sticky errors present will be logged and cleared.
+*
 * @see {@link https://phoenix-documentation.readthedocs.io/en/latest/ch13_MC.html}
 */
 public class VictorSPX {
@@ -19,18 +20,17 @@ public class VictorSPX {
     private static final Logger mLogger = LoggerFactory.getLogger( VictorSPX.class );
 
     /**
-    * This method is wrapper for a newly created WPI_TalonSRX object that is intended to initialize the motor controller
-    * to a know state.  The following lists what this method does and the state of the controller.
-    * <p>
-    * <ul>
+    * This method is intended to initialize the motor controller to default configuration common to all modes or
+    * operation.
+    * <p><ul>
     * <li>Sticky faults will be logged and cleared
     * <li>Reset to factory defaults
     * <li>Voltage compensation is enabled and set for 12V
     * </ul>
-    * <p>
-    * @param talon WPI_TalonSRX The motor controller to initialize
+    *
+    * @param victor WPI_VictorSPX The motor controller to initialize
     */
-    private static void setDefaultConfig( WPI_VictorSPX victor ) {
+    private static void CommonConfig ( WPI_VictorSPX victor ) {
         StickyFaults faults = new StickyFaults();
 
         victor.getStickyFaults( faults );
@@ -55,26 +55,38 @@ public class VictorSPX {
     }
 
     /**
-    * Create a master WPI_VictorSPX motor controller
-    * @param victor WPI_VictorSPX The motor controller to initialize
+    * Configures a Victor SPX motor controller to be a master.
+    *
+    * @param victor WPI_VictorSPX The motor controller to configure
     */  
-    public static WPI_VictorSPX createVictorSPX ( WPI_VictorSPX victor ) {
-        setDefaultConfig( victor );
+    public static void ConfigureVictorSPX ( WPI_VictorSPX victor ) {
+        CommonConfig( victor );
         victor.set( ControlMode.PercentOutput, 0.0 );
-        mLogger.info(" Created leader VictorSPX [{}]", victor.getDeviceID() );
-        return victor;
+        mLogger.info(" Configured leader VictorSPX [{}]", victor.getDeviceID() );
     }
   
     /**
-    * Create a follower WPI_VictorSPX motor controller
-    * @param victor WPI_VictorSPX The motor controller to initialize 
-    * @param master WPI_TalonSRX The motor controller to follow 
+    * Configures a Victor SPX motor controller to be a follower.
+    *
+    * @param victor WPI_VictorSPX The Victor SPX motor controller to configure 
+    * @param master WPI_TalonSRX The Talon SRX motor controller to follow 
     */ 
-    public static WPI_VictorSPX createVictorSPX ( WPI_VictorSPX victor, WPI_TalonSRX master ) {
-        setDefaultConfig( victor );
+    public static void ConfigureVictorSPX ( WPI_VictorSPX victor, WPI_TalonSRX master ) {
+        CommonConfig( victor );
         victor.follow( master );
-        mLogger.info( "Created follower VictorSPX [{}], master [{}]", victor.getDeviceID(), master.getDeviceID() );
-        return victor;
+        mLogger.info( "Configured follower VictorSPX [{}], master [{}]", victor.getDeviceID(), master.getDeviceID() );
+    }
+
+    /**
+    * Configures a Victor SPX motor controller to be a follower.
+    *
+    * @param victor WPI_VictorSPX The Victor SPX motor controller to configure 
+    * @param master WPI_VictorSPX The Victor SPX motor controller to follow 
+    */ 
+    public static void ConfigureVictorSPX ( WPI_VictorSPX victor, WPI_VictorSPX master ) {
+        CommonConfig( victor );
+        victor.follow( master );
+        mLogger.info( "Configured follower VictorSPX [{}], master [{}]", victor.getDeviceID(), master.getDeviceID() );
     }
 
 }
