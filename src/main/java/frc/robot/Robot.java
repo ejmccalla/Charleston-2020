@@ -5,9 +5,8 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import frc.robot.RobotContainer.MatchState_t;
 import edu.wpi.first.wpilibj.CAN;
-// import java.text.DateFormat;
-// import java.text.SimpleDateFormat;
 // import edu.wpi.first.wpilibj.DriverStation;
+import java.time.LocalDateTime;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,9 +20,9 @@ public class Robot extends TimedRobot {
     private final Logger mLogger = LoggerFactory.getLogger( Robot.class );
     private RobotContainer mRobotContainer;
     private Command mAutonomousCommand;
-    private CAN mCanbusLogger = new CAN(3);
-    private byte[] mCanbusLoggerStart = {1, 0, 0, 0, 0, 0, 0, 0};
-    private byte[] mCanbusLoggerStop = {0, 0, 0, 0, 0, 0, 0, 0};
+    private CAN mCanbusLogger = new CAN(0);  // DeviceID = 0
+    private LocalDateTime mLocalDateTime;
+    private byte[] mCanbusLoggerData = {0, 0, 0, 0, 0, 0, 0, 0};
 
     /**
     * This method is called when the robot is first powered up.  This method get called only once.
@@ -47,7 +46,7 @@ public class Robot extends TimedRobot {
         mRobotContainer.SetMatchState( MatchState_t.disabledInit );
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
         mRobotContainer.UpdateSmartDashboard();
-        mCanbusLogger.writePacket(mCanbusLoggerStop, 0);
+        mCanbusLogger.writePacket( mCanbusLoggerData, 0 );  // API class: 0, API index: 0
     }
 
     /**
@@ -80,7 +79,15 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
         mRobotContainer.UpdateSmartDashboard();
-        mCanbusLogger.writePacket(mCanbusLoggerStart, 0);
+       
+        mLocalDateTime = LocalDateTime.now();
+        mCanbusLoggerData[0] = (byte) ( mLocalDateTime.getYear() - 2000 );
+        mCanbusLoggerData[1] = (byte) mLocalDateTime.getMonthValue();
+        mCanbusLoggerData[2] = (byte) mLocalDateTime.getDayOfMonth();
+        mCanbusLoggerData[3] = (byte) mLocalDateTime.getHour();
+        mCanbusLoggerData[4] = (byte) mLocalDateTime.getMinute();
+        mCanbusLoggerData[5] = (byte) mLocalDateTime.getSecond();
+        mCanbusLogger.writePacket(mCanbusLoggerData, 1);  // API class: 0, API index: 1
     }
 
     /**
@@ -130,6 +137,7 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
         mRobotContainer.LogRobotDataToRoboRio( mLogger );
         mRobotContainer.UpdateSmartDashboard();
+        mCanbusLogger.writeRTRFrame(2, 16);                 // API Class: 1, API index: 0
     }
 
 
